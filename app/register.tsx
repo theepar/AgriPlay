@@ -1,19 +1,21 @@
-import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
+    Dimensions,
     KeyboardAvoidingView,
     Platform,
     Pressable,
     ScrollView,
+    StatusBar,
     StyleSheet,
+    Text,
     TextInput,
     View,
 } from 'react-native';
+
+const { width } = Dimensions.get('window');
 
 export default function RegisterScreen() {
     const [username, setUsername] = useState('');
@@ -24,269 +26,323 @@ export default function RegisterScreen() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const handleRegister = () => {
-        // Validate passwords match
         if (password !== confirmPassword) {
             alert('Password tidak cocok!');
             return;
         }
-
-        // TODO: Implement register logic
         console.log('Register:', { username, email, password });
-        // For now, navigate to login
         router.replace('/login');
     };
 
     const handleSocialLogin = (provider: string) => {
         console.log('Social login with:', provider);
-        // TODO: Implement social login
         router.replace('/');
     };
 
     return (
-        <ThemedView style={styles.container}>
+        <View style={styles.container}>
+            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
+            {/* Decorative Background Element (Inverted position from login) */}
+            <View style={styles.decorativeCircle} />
+
             <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.keyboardView}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                style={{ flex: 1 }}
             >
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
                     keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
                 >
-                    {/* Logo */}
-                    <View style={styles.logoContainer}>
-                        <Image
-                            source={require('@/assets/images/logo-home.png')}
-                            style={styles.logo}
-                            contentFit="contain"
-                        />
+                    {/* 1. Header */}
+                    <View style={styles.headerSection}>
+                        <View style={styles.logoContainer}>
+                            <View style={styles.logoPlaceholder}>
+                                <Ionicons name="person-add" size={32} color="#059669" />
+                            </View>
+                        </View>
+                        <ThemedText type="title" style={styles.title}>Buat Akun Baru</ThemedText>
+                        <ThemedText style={styles.subtitle}>Bergabunglah dengan komunitas petani modern.</ThemedText>
                     </View>
 
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <ThemedText type="title" style={styles.title}>Daftar Akun</ThemedText>
-                        <View style={styles.subtitleContainer}>
-                            <ThemedText style={styles.subtitle}>Sudah punya akun ya? </ThemedText>
-                            <Pressable onPress={() => router.back()}>
-                                <ThemedText type="link" style={styles.link}>Masuk</ThemedText>
+                    {/* 2. Form Section */}
+                    <View style={styles.formSection}>
+
+                        {/* Username */}
+                        <View style={styles.inputWrapper}>
+                            <ThemedText type="defaultSemiBold" style={styles.label}>Username</ThemedText>
+                            <View style={styles.inputContainer}>
+                                <Ionicons name="person-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Pilih username"
+                                    placeholderTextColor="#D1D5DB"
+                                    value={username}
+                                    onChangeText={setUsername}
+                                    autoCapitalize="none"
+                                />
+                            </View>
+                        </View>
+
+                        {/* Email */}
+                        <View style={styles.inputWrapper}>
+                            <ThemedText type="defaultSemiBold" style={styles.label}>Email Address</ThemedText>
+                            <View style={styles.inputContainer}>
+                                <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="nama@email.com"
+                                    placeholderTextColor="#D1D5DB"
+                                    value={email}
+                                    onChangeText={setEmail}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                />
+                            </View>
+                        </View>
+
+                        {/* Password */}
+                        <View style={styles.inputWrapper}>
+                            <ThemedText type="defaultSemiBold" style={styles.label}>Password</ThemedText>
+                            <View style={styles.inputContainer}>
+                                <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Minimal 8 karakter"
+                                    placeholderTextColor="#D1D5DB"
+                                    value={password}
+                                    onChangeText={setPassword}
+                                    secureTextEntry={!showPassword}
+                                    autoCapitalize="none"
+                                />
+                                <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                                    <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={20} color="#9CA3AF" />
+                                </Pressable>
+                            </View>
+                        </View>
+
+                        {/* Confirm Password */}
+                        <View style={styles.inputWrapper}>
+                            <ThemedText type="defaultSemiBold" style={styles.label}>Konfirmasi Password</ThemedText>
+                            <View style={styles.inputContainer}>
+                                <Ionicons name="shield-checkmark-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Ulangi password"
+                                    placeholderTextColor="#D1D5DB"
+                                    value={confirmPassword}
+                                    onChangeText={setConfirmPassword}
+                                    secureTextEntry={!showConfirmPassword}
+                                    autoCapitalize="none"
+                                />
+                                <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
+                                    <Ionicons name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'} size={20} color="#9CA3AF" />
+                                </Pressable>
+                            </View>
+                        </View>
+
+                        {/* Register Button */}
+                        <Pressable
+                            style={styles.registerButton}
+                            onPress={handleRegister}
+                        >
+                            <Text style={styles.registerButtonText}>Daftar Sekarang</Text>
+                            <Ionicons name="arrow-forward" size={20} color="#fff" />
+                        </Pressable>
+                    </View>
+
+                    {/* 3. Social Login */}
+                    <View style={styles.socialSection}>
+                        <View style={styles.dividerContainer}>
+                            <View style={styles.divider} />
+                            <ThemedText style={styles.dividerText}>Atau daftar dengan</ThemedText>
+                            <View style={styles.divider} />
+                        </View>
+
+                        <View style={styles.socialRow}>
+                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('google')}>
+                                <Ionicons name="logo-google" size={24} color="#DB4437" />
+                            </Pressable>
+                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('apple')}>
+                                <Ionicons name="logo-apple" size={24} color="#000" />
+                            </Pressable>
+                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('facebook')}>
+                                <Ionicons name="logo-facebook" size={24} color="#1877F2" />
                             </Pressable>
                         </View>
                     </View>
 
-                    {/* Username Input */}
-                    <View style={styles.inputContainer}>
-                        <Ionicons name="person-outline" size={20} color="#999" style={styles.inputIcon} />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Username"
-                            placeholderTextColor="#999"
-                            value={username}
-                            onChangeText={setUsername}
-                            autoCapitalize="none"
-                            autoComplete="username"
-                        />
-                    </View>
-
-                    {/* Email Input */}
-                    <View style={styles.inputContainer}>
-                        <Ionicons name="mail-outline" size={20} color="#999" style={styles.inputIcon} />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Email"
-                            placeholderTextColor="#999"
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            autoComplete="email"
-                        />
-                    </View>
-
-                    {/* Password Input */}
-                    <View style={styles.inputContainer}>
-                        <Ionicons name="lock-closed-outline" size={20} color="#999" style={styles.inputIcon} />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Password"
-                            placeholderTextColor="#999"
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry={!showPassword}
-                            autoCapitalize="none"
-                            autoComplete="password"
-                        />
-                        <Pressable
-                            onPress={() => setShowPassword(!showPassword)}
-                            style={styles.eyeIcon}
-                        >
-                            <Ionicons
-                                name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                                size={20}
-                                color="#999"
-                            />
+                    {/* 4. Login Link */}
+                    <View style={styles.footer}>
+                        <ThemedText style={styles.footerText}>Sudah punya akun? </ThemedText>
+                        <Pressable onPress={() => router.replace('/login')}>
+                            <ThemedText style={styles.loginLink}>Masuk di sini</ThemedText>
                         </Pressable>
                     </View>
 
-                    {/* Confirm Password Input */}
-                    <View style={styles.inputContainer}>
-                        <Ionicons name="lock-closed-outline" size={20} color="#999" style={styles.inputIcon} />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Confirm Password"
-                            placeholderTextColor="#999"
-                            value={confirmPassword}
-                            onChangeText={setConfirmPassword}
-                            secureTextEntry={!showConfirmPassword}
-                            autoCapitalize="none"
-                            autoComplete="password"
-                        />
-                        <Pressable
-                            onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                            style={styles.eyeIcon}
-                        >
-                            <Ionicons
-                                name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
-                                size={20}
-                                color="#999"
-                            />
-                        </Pressable>
-                    </View>
-
-                    {/* Register Button */}
-                    <ThemedButton
-                        title="Daftar"
-                        onPress={handleRegister}
-                        style={{ marginTop: 10, marginBottom: 20 }}
-                    />
-
-                    {/* Divider */}
-                    <View style={styles.dividerContainer}>
-                        <View style={styles.divider} />
-                        <ThemedText style={styles.dividerText}>Atau masuk dengan</ThemedText>
-                        <View style={styles.divider} />
-                    </View>
-
-                    {/* Social Login Buttons */}
-                    <View style={styles.socialContainer}>
-                        <Pressable
-                            style={styles.socialButton}
-                            onPress={() => handleSocialLogin('apple')}
-                        >
-                            <Ionicons name="logo-apple" size={24} color="#000" />
-                        </Pressable>
-
-                        <Pressable
-                            style={styles.socialButton}
-                            onPress={() => handleSocialLogin('google')}
-                        >
-                            <Ionicons name="logo-google" size={24} color="#DB4437" />
-                        </Pressable>
-
-                        <Pressable
-                            style={styles.socialButton}
-                            onPress={() => handleSocialLogin('facebook')}
-                        >
-                            <Ionicons name="logo-facebook" size={24} color="#1877F2" />
-                        </Pressable>
-                    </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-        </ThemedView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#FFFFFF',
     },
-    keyboardView: {
-        flex: 1,
+    decorativeCircle: {
+        position: 'absolute',
+        top: -80,
+        left: -80, // Pindah ke kiri untuk variasi
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        backgroundColor: '#ECFDF5', // Very light green
+        zIndex: -1,
     },
     scrollContent: {
         flexGrow: 1,
-        paddingHorizontal: 30,
+        paddingHorizontal: 24,
         paddingTop: 60,
         paddingBottom: 40,
     },
-    logoContainer: {
+
+    // HEADER
+    headerSection: {
         alignItems: 'center',
-        marginBottom: 40,
+        marginBottom: 32,
     },
-    logo: {
-        width: 200,
-        height: 80,
+    logoContainer: {
+        marginBottom: 20,
     },
-    header: {
-        marginBottom: 30,
+    logoPlaceholder: {
+        width: 70,
+        height: 70,
+        borderRadius: 20,
+        backgroundColor: '#ECFDF5',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transform: [{ rotate: '5deg' }]
     },
     title: {
-        color: '#2D5F3F',
+        fontSize: 26,
+        fontWeight: '800',
+        color: '#111827',
         marginBottom: 8,
     },
-    subtitleContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
     subtitle: {
-        fontSize: 14,
-        color: '#999',
+        fontSize: 15,
+        color: '#6B7280',
+        textAlign: 'center',
     },
-    link: {
+
+    // FORM
+    formSection: {
+        marginBottom: 32,
+    },
+    inputWrapper: {
+        marginBottom: 16,
+    },
+    label: {
         fontSize: 14,
-        color: '#4CAF50',
+        fontWeight: '600',
+        color: '#374151',
+        marginBottom: 8,
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#f5f5f5',
-        borderRadius: 12,
-        paddingHorizontal: 15,
-        marginBottom: 15,
-        height: 50,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 16,
+        height: 56,
+        paddingHorizontal: 16,
     },
     inputIcon: {
-        marginRight: 10,
+        marginRight: 12,
     },
     input: {
         flex: 1,
-        fontSize: 14,
-        color: '#333',
+        fontSize: 16,
+        color: '#111827',
+        height: '100%',
     },
     eyeIcon: {
-        padding: 5,
+        padding: 8,
+    },
+    registerButton: {
+        backgroundColor: '#059669', // Emerald Primary
+        height: 56,
+        borderRadius: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 16,
+        gap: 8,
+        shadowColor: '#059669',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 10,
+        elevation: 4,
+    },
+    registerButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+
+    // SOCIAL
+    socialSection: {
+        marginBottom: 40,
     },
     dividerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginVertical: 25,
+        marginBottom: 24,
     },
     divider: {
         flex: 1,
         height: 1,
-        backgroundColor: '#e0e0e0',
+        backgroundColor: '#E5E7EB',
     },
     dividerText: {
-        fontSize: 12,
-        color: '#999',
-        marginHorizontal: 15,
+        marginHorizontal: 16,
+        fontSize: 13,
+        color: '#9CA3AF',
     },
-    socialContainer: {
+    socialRow: {
         flexDirection: 'row',
         justifyContent: 'center',
         gap: 20,
-        marginTop: 10,
     },
-    socialButton: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: '#f5f5f5',
+    socialBtn: {
+        width: 56,
+        height: 56,
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 2,
+    },
+
+    // FOOTER
+    footer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingBottom: 20,
+    },
+    footerText: {
+        fontSize: 14,
+        color: '#6B7280',
+    },
+    loginLink: {
+        fontSize: 14,
+        color: '#059669',
+        fontWeight: 'bold',
     },
 });

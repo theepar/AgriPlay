@@ -9,7 +9,9 @@ import {
     Animated,
     Dimensions,
     FlatList,
+    Platform,
     Pressable,
+    StatusBar,
     StyleSheet,
     View,
     ViewToken
@@ -21,30 +23,27 @@ const onboardingData = [
     {
         id: 1,
         image: require('@/assets/images/logo-home.png'),
-        title: '',
-        description: '',
+        title: 'Selamat Datang',
+        description: 'Solusi pertanian cerdas dalam genggaman Anda. Mari mulai perjalanan hijau bersama kami.',
         isLogo: true,
     },
     {
         id: 2,
         image: require('@/assets/images/homepage-1.png'),
         title: 'AI & Machine Learning',
-        description:
-            'Aplikasi mobile berbasis AI dan Machine Learning yang membantu generasi muda mengajar dunia pertanian modern. Temukan cara berccocok tanam cerdas, lebih efisien, dan produktif - langsung dari genggaman!',
+        description: 'Temukan cara bercocok tanam yang lebih cerdas, efisien, dan produktif dengan bantuan teknologi terkini.',
     },
     {
         id: 3,
         image: require('@/assets/images/homepage-2.png'),
         title: 'Rekomendasi Terbaik',
-        description:
-            'Dapatkan rekomendasi langkah tanen terbaik berdasarkan kondisi tanahmu, Video tutorial, panduan interaktif, dan tips harian langsung dari agronomis profesional untuk hasil panen maksimal!',
+        description: 'Dapatkan panduan langkah demi langkah yang disesuaikan dengan kondisi tanah dan lokasi Anda.',
     },
     {
         id: 4,
         image: require('@/assets/images/homepage-3.png'),
         title: 'Komunitas Petani',
-        description:
-            'Gabung komunitas pecinta pertanian, bertukur pengalaman, dan ikut tantangan seru! untuk meningkatkan regenerasi petani di Indonesia. Bersama, kita tunjukan masa depan pertanian yang keren!',
+        description: 'Bergabunglah dengan komunitas, bertukar pengalaman, dan wujudkan regenerasi petani Indonesia.',
     },
 ];
 
@@ -61,25 +60,20 @@ export default function OnboardingScreen() {
 
     const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
-    const scrollTo = async () => {
-        if (currentIndex < onboardingData.length - 1) {
-            slidesRef.current?.scrollToIndex({ index: currentIndex + 1 });
-        } else {
-            try {
-                await AsyncStorage.setItem('hasSeenOnboarding', 'true');
-                router.replace('/login');
-            } catch (err) {
-                console.log('Error @setItem: ', err);
-            }
-        }
-    };
-
-    const handleSkip = async () => {
+    const handleFinish = async () => {
         try {
             await AsyncStorage.setItem('hasSeenOnboarding', 'true');
             router.replace('/login');
         } catch (err) {
             console.log('Error @setItem: ', err);
+        }
+    };
+
+    const scrollTo = async () => {
+        if (currentIndex < onboardingData.length - 1) {
+            slidesRef.current?.scrollToIndex({ index: currentIndex + 1 });
+        } else {
+            handleFinish();
         }
     };
 
@@ -103,7 +97,7 @@ export default function OnboardingScreen() {
 
                     const backgroundColor = scrollX.interpolate({
                         inputRange,
-                        outputRange: ['#D1D5DB', '#4CAF50', '#D1D5DB'],
+                        outputRange: ['#D1D5DB', '#059669', '#D1D5DB'], // Updated Colors
                         extrapolate: 'clamp',
                     });
 
@@ -128,34 +122,49 @@ export default function OnboardingScreen() {
     const renderItem = ({ item }: { item: typeof onboardingData[0] }) => {
         return (
             <View style={styles.slide}>
-                {item.isLogo ? (
-                    <View style={styles.logoContainer}>
-                        <Image source={item.image} style={styles.logoImage} contentFit="contain" />
-                    </View>
-                ) : (
-                    <View style={styles.contentContainer}>
-                        <View style={styles.imageContainer}>
-                            <Image source={item.image} style={styles.image} contentFit="contain" />
-                        </View>
-                        <View style={styles.textContainer}>
-                            <ThemedText style={styles.title}>{item.title}</ThemedText>
-                            <ThemedText style={styles.description}>{item.description}</ThemedText>
-                        </View>
-                    </View>
-                )}
+                {/* Image Area */}
+                <View style={styles.imageContainer}>
+                    {item.isLogo ? (
+                        // Logo Slide Specific Style
+                        <Image
+                            source={item.image}
+                            style={styles.logoImage}
+                            contentFit="contain"
+                        />
+                    ) : (
+                        // Normal Slide Image
+                        <Image
+                            source={item.image}
+                            style={styles.image}
+                            contentFit="contain"
+                        />
+                    )}
+                </View>
+
+                {/* Text Area */}
+                <View style={styles.textContainer}>
+                    <ThemedText style={styles.title}>{item.title}</ThemedText>
+                    <ThemedText style={styles.description}>{item.description}</ThemedText>
+                </View>
             </View>
         );
     };
 
     return (
         <ThemedView style={styles.container}>
+            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
+            {/* Decorative Background (Consistent with Login) */}
+            <View style={styles.decorativeCircle} />
+
             {/* Skip Button */}
-            {currentIndex > 0 && (
-                <Pressable style={styles.skipButton} onPress={handleSkip}>
+            {currentIndex < onboardingData.length - 1 && (
+                <Pressable style={styles.skipButton} onPress={handleFinish}>
                     <ThemedText style={styles.skipText}>Lewati</ThemedText>
                 </Pressable>
             )}
 
+            {/* Slides */}
             <View style={{ flex: 3 }}>
                 <FlatList
                     data={onboardingData}
@@ -176,17 +185,17 @@ export default function OnboardingScreen() {
                 />
             </View>
 
+            {/* Footer Controls */}
             <View style={styles.footer}>
                 <Paginator data={onboardingData} scrollX={scrollX} />
 
-                <ThemedButton
-                    title={currentIndex === 0
-                        ? 'Mulai'
-                        : currentIndex === onboardingData.length - 1
-                            ? 'Memulai'
-                            : 'Selanjutnya'}
-                    onPress={scrollTo}
-                />
+                <View style={styles.buttonContainer}>
+                    <ThemedButton
+                        title={currentIndex === onboardingData.length - 1 ? 'Mulai Sekarang' : 'Selanjutnya'}
+                        onPress={scrollTo}
+                        style={styles.mainButton}
+                    />
+                </View>
             </View>
         </ThemedView>
     );
@@ -195,87 +204,108 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#ffffff',
-        justifyContent: 'center',
-        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+    },
+    decorativeCircle: {
+        position: 'absolute',
+        top: -100,
+        right: -80,
+        width: 350,
+        height: 350,
+        borderRadius: 175,
+        backgroundColor: '#ECFDF5', // Very light green bg
+        zIndex: -1,
     },
     slide: {
         width: width,
-        justifyContent: 'center',
         alignItems: 'center',
+        paddingHorizontal: 24,
     },
+
+    // Header / Skip
     skipButton: {
         position: 'absolute',
-        top: 50,
-        right: 20,
+        top: Platform.OS === 'ios' ? 60 : 50,
+        right: 24,
         zIndex: 10,
-        padding: 10,
+        padding: 8,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.8)',
     },
     skipText: {
-        fontSize: 16,
-        color: '#666',
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#6B7280',
     },
-    logoContainer: {
-        flex: 1,
+
+    // Images
+    imageContainer: {
+        flex: 0.6,
+        width: width,
         justifyContent: 'center',
         alignItems: 'center',
-        width: width,
+        marginTop: 40,
     },
     logoImage: {
-        width: width * 0.6,
-        height: height * 0.3,
-    },
-    contentContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-    },
-    imageContainer: {
-        width: width * 0.8,
-        height: height * 0.4,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 20,
+        width: 150,
+        height: 80,
     },
     image: {
-        width: '100%',
-        height: '100%',
+        width: width * 0.85,
+        height: '80%',
     },
+
+    // Text Content
     textContainer: {
+        flex: 0.4,
         alignItems: 'center',
-        paddingHorizontal: 10,
+        justifyContent: 'flex-start',
+        paddingTop: 20,
     },
     title: {
-        fontSize: 24,
-        fontWeight: 'bold',
+        fontSize: 28,
+        fontWeight: '800',
         textAlign: 'center',
-        marginBottom: 10,
-        color: '#2D5F3F',
-    },
-    description: {
-        fontSize: 14,
-        textAlign: 'center',
-        lineHeight: 22,
-        color: '#555',
+        marginBottom: 16,
+        color: '#111827', // Dark Grey
         paddingHorizontal: 10,
     },
+    description: {
+        fontSize: 16,
+        textAlign: 'center',
+        lineHeight: 24,
+        color: '#6B7280', // Soft Grey
+        paddingHorizontal: 10,
+    },
+
+    // Footer & Pagination
     footer: {
         flex: 1,
         justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingBottom: 50,
+        paddingHorizontal: 24,
+        paddingBottom: Platform.OS === 'ios' ? 50 : 30,
         width: '100%',
     },
     pagination: {
         flexDirection: 'row',
         justifyContent: 'center',
-        height: 64,
+        height: 40,
         alignItems: 'center',
     },
     dot: {
         height: 8,
         borderRadius: 4,
         marginHorizontal: 4,
+    },
+    buttonContainer: {
+        width: '100%',
+    },
+    mainButton: {
+        // Custom style override if needed, otherwise uses ThemedButton default
+        shadowColor: '#059669',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
     },
 });

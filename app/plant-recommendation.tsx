@@ -1,23 +1,32 @@
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
+    ActivityIndicator,
+    Dimensions,
+    KeyboardAvoidingView,
+    Platform,
     Pressable,
     ScrollView,
+    StatusBar,
     StyleSheet,
     TextInput,
+    TouchableOpacity,
     View,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 
+// --- TYPES ---
 type ExperienceLevel = 'pemula' | 'menengah' | 'mahir' | null;
 type SunCondition = 'full' | 'partial' | 'shade' | null;
 
+const { width } = Dimensions.get('window');
+
 export default function PlantRecommendationScreen() {
+    // --- STATE ---
     const [step, setStep] = useState(1);
     const [experience, setExperience] = useState<ExperienceLevel>(null);
     const [location, setLocation] = useState('');
@@ -25,10 +34,11 @@ export default function PlantRecommendationScreen() {
     const [sunCondition, setSunCondition] = useState<SunCondition>(null);
     const [loadingLocation, setLoadingLocation] = useState(false);
     const [coordinates, setCoordinates] = useState({
-        latitude: -7.0051, // Bojongsoang
+        latitude: -7.0051,
         longitude: 107.6419
     });
 
+    // --- LOGIC ---
     const handleGetLocation = async () => {
         setLoadingLocation(true);
         try {
@@ -44,12 +54,7 @@ export default function PlantRecommendationScreen() {
 
             setCoordinates({ latitude, longitude });
 
-            // Reverse geocoding to get address
-            const address = await Location.reverseGeocodeAsync({
-                latitude,
-                longitude,
-            });
-
+            const address = await Location.reverseGeocodeAsync({ latitude, longitude });
             if (address[0]) {
                 const place = `${address[0].street || ''} ${address[0].city || ''}, ${address[0].region || ''}`;
                 setLocation(place.trim());
@@ -62,28 +67,17 @@ export default function PlantRecommendationScreen() {
     };
 
     const handleNext = () => {
-        if (step === 1 && !experience) {
-            alert('Pilih tingkat pengalaman Anda');
-            return;
-        }
-        if (step === 2 && !location) {
-            alert('Masukkan lokasi Anda');
-            return;
-        }
-        if (step === 3 && !sunCondition) {
-            alert('Pilih kondisi matahari');
-            return;
-        }
+        if (step === 1 && !experience) return;
+        if (step === 2 && !location) return;
+        if (step === 3 && !sunCondition) return;
 
-        // After step 3, go to results
         if (step === 3) {
             router.push('/plant-recommendations-result');
-        } else if (step < 3) {
+        } else {
             setStep(step + 1);
         }
     };
 
-    // Check if current step is complete for button styling
     const isStepValid = () => {
         if (step === 1) return !!experience;
         if (step === 2) return !!location;
@@ -91,385 +85,414 @@ export default function PlantRecommendationScreen() {
         return false;
     };
 
+    // --- RENDER COMPONENT ---
+    const renderProgressBar = () => {
+        const progress = (step / 3) * 100;
+        return (
+            <View style={styles.progressContainer}>
+                <View style={styles.progressTrack}>
+                    <View style={[styles.progressFill, { width: `${progress}%` }]} />
+                </View>
+                <ThemedText style={styles.stepText}>Langkah {step} dari 3</ThemedText>
+            </View>
+        );
+    };
+
     return (
-        <ThemedView style={styles.container}>
-            {/* Header */}
+        <View style={styles.container}>
+            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
+            {/* 1. Header Simple */}
             <View style={styles.header}>
-                <Pressable onPress={() => step === 1 ? router.back() : setStep(step - 1)}>
-                    <Ionicons name="arrow-back" size={24} color="#2D5F3F" />
-                </Pressable>
-                <ThemedText style={styles.headerTitle}>Rekomendasi Tanaman</ThemedText>
-                <View style={{ width: 24 }} />
+                <TouchableOpacity onPress={() => step === 1 ? router.back() : setStep(step - 1)} style={styles.backBtn}>
+                    <Ionicons name="arrow-back" size={24} color="#1F2937" />
+                </TouchableOpacity>
+                <ThemedText type="subtitle" style={styles.headerTitle}>Rekomendasi Tanaman</ThemedText>
+                <View style={{ width: 40 }} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
-                {/* Step 1: Experience Level */}
-                {step === 1 && (
-                    <View style={styles.stepContent}>
-                        <ThemedText style={styles.question}>
-                            Seberapa berpengalaman kamu dalam berkebun?
-                        </ThemedText>
+            {/* Progress Bar */}
+            {renderProgressBar()}
 
-                        <Pressable
-                            style={[
-                                styles.optionCard,
-                                experience === 'pemula' && styles.optionCardSelected,
-                            ]}
-                            onPress={() => setExperience('pemula')}
-                        >
-                            <Ionicons
-                                name={experience === 'pemula' ? 'radio-button-on' : 'radio-button-off'}
-                                size={24}
-                                color="#4CAF50"
-                            />
-                            <ThemedText style={styles.optionText}>Pemula</ThemedText>
-                        </Pressable>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                style={{ flex: 1 }}
+            >
+                <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
-                        <Pressable
-                            style={[
-                                styles.optionCard,
-                                experience === 'menengah' && styles.optionCardSelected,
-                            ]}
-                            onPress={() => setExperience('menengah')}
-                        >
-                            <Ionicons
-                                name={experience === 'menengah' ? 'radio-button-on' : 'radio-button-off'}
-                                size={24}
-                                color="#4CAF50"
-                            />
-                            <ThemedText style={styles.optionText}>Menengah</ThemedText>
-                        </Pressable>
+                    {/* STEP 1: Experience */}
+                    {step === 1 && (
+                        <View style={styles.stepContainer}>
+                            <ThemedText type="title" style={styles.questionTitle}>Seberapa berpengalaman kamu?</ThemedText>
+                            <ThemedText style={styles.questionSubtitle}>Kami akan sesuaikan tingkat kesulitan tanaman.</ThemedText>
 
-                        <Pressable
-                            style={[
-                                styles.optionCard,
-                                experience === 'mahir' && styles.optionCardSelected,
-                            ]}
-                            onPress={() => setExperience('mahir')}
-                        >
-                            <Ionicons
-                                name={experience === 'mahir' ? 'radio-button-on' : 'radio-button-off'}
-                                size={24}
-                                color="#4CAF50"
-                            />
-                            <ThemedText style={styles.optionText}>Mahir</ThemedText>
-                        </Pressable>
-                    </View>
-                )}
-
-                {/* Step 2: Location */}
-                {step === 2 && (
-                    <View style={styles.stepContent}>
-                        <ThemedText style={styles.question}>
-                            Kamu mau bertanam di mana?
-                        </ThemedText>
-
-                        <View style={styles.inputRow}>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Cari lokasi..."
-                                placeholderTextColor="#999"
-                                value={location}
-                                onChangeText={setLocation}
-                            />
-                            <TextInput
-                                style={[styles.input, styles.inputSmall]}
-                                placeholder="Luas (m2)"
-                                placeholderTextColor="#999"
-                                value={area}
-                                onChangeText={setArea}
-                                keyboardType="numeric"
-                            />
+                            <View style={styles.cardList}>
+                                {[
+                                    { id: 'pemula', label: 'Pemula', icon: 'leaf-outline', sub: 'Baru mulai belajar' },
+                                    { id: 'menengah', label: 'Menengah', icon: 'flower-outline', sub: 'Sudah pernah panen' },
+                                    { id: 'mahir', label: 'Mahir', icon: 'ribbon-outline', sub: 'Expert perkebunan' },
+                                ].map((item) => (
+                                    <Pressable
+                                        key={item.id}
+                                        style={[
+                                            styles.selectionCard,
+                                            experience === item.id && styles.selectionCardActive
+                                        ]}
+                                        onPress={() => setExperience(item.id as ExperienceLevel)}
+                                    >
+                                        <View style={[styles.iconContainer, experience === item.id && styles.iconContainerActive]}>
+                                            <Ionicons name={item.icon as any} size={24} color={experience === item.id ? '#059669' : '#9CA3AF'} />
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <ThemedText type="defaultSemiBold" style={[styles.cardTitle, experience === item.id && styles.textActive]}>{item.label}</ThemedText>
+                                            <ThemedText style={styles.cardSubtitle}>{item.sub}</ThemedText>
+                                        </View>
+                                        <View style={[styles.radioOuter, experience === item.id && styles.radioOuterActive]}>
+                                            {experience === item.id && <View style={styles.radioInner} />}
+                                        </View>
+                                    </Pressable>
+                                ))}
+                            </View>
                         </View>
+                    )}
 
-                        {/* Leaflet Map via WebView (No API Key Required) */}
-                        <View style={styles.mapContainer}>
-                            <WebView
-                                style={styles.map}
-                                source={{
-                                    html: `
-                                    <!DOCTYPE html>
-                                    <html>
-                                    <head>
-                                        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-                                        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-                                        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-                                        <style>
-                                            * { margin: 0; padding: 0; }
-                                            body, html, #map { width: 100%; height: 100%; }
-                                        </style>
-                                    </head>
-                                    <body>
-                                        <div id="map"></div>
-                                        <script>
-                                            var map = L.map('map',{
-                                                zoomControl: true
-                                            }).setView([${coordinates.latitude}, ${coordinates.longitude}], 15);
-                                            
-                                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                                                attribution: '© OpenStreetMap',
-                                                maxZoom: 19
-                                            }).addTo(map);
-                                            
-                                            var marker = L.marker([${coordinates.latitude}, ${coordinates.longitude}], {
-                                                draggable: true
-                                            }).addTo(map);
-                                            
-                                            marker.bindPopup('<b>📍 Lokasi</b><br>${location || 'Drag marker atau tap peta'}').openPopup();
-                                            
-                                            // Send marker position to React Native on drag end
-                                            marker.on('dragend', function(e) {
-                                                var position = marker.getLatLng();
-                                                window.ReactNativeWebView.postMessage(JSON.stringify({
-                                                    latitude: position.lat,
-                                                    longitude: position.lng
-                                                }));
-                                            });
-                                            
-                                            // Allow clicking on map to move marker
-                                            map.on('click', function(e) {
-                                                marker.setLatLng(e.latlng);
-                                                window.ReactNativeWebView.postMessage(JSON.stringify({
-                                                    latitude: e.latlng.lat,
-                                                    longitude: e.latlng.lng
-                                                }));
-                                            });
-                                        </script>
-                                    </body>
-                                    </html>
-                                    `
-                                }}
-                                onMessage={(event) => {
-                                    try {
-                                        const data = JSON.parse(event.nativeEvent.data);
-                                        setCoordinates({
-                                            latitude: data.latitude,
-                                            longitude: data.longitude
-                                        });
-                                        // Reverse geocode the new position
-                                        Location.reverseGeocodeAsync({
-                                            latitude: data.latitude,
-                                            longitude: data.longitude
-                                        })
-                                            .then((address) => {
-                                                if (address[0]) {
-                                                    const place = `${address[0].street || ''} ${address[0].city || ''}, ${address[0].region || ''}`;
-                                                    setLocation(place.trim());
-                                                }
-                                            })
-                                            .catch(console.error);
-                                    } catch (error) {
-                                        console.error('Error parsing message:', error);
-                                    }
-                                }}
-                                javaScriptEnabled={true}
-                                domStorageEnabled={true}
-                            />
+                    {/* STEP 2: Location */}
+                    {step === 2 && (
+                        <View style={styles.stepContainer}>
+                            <ThemedText type="title" style={styles.questionTitle}>Di mana lokasi lahanmu?</ThemedText>
+                            <ThemedText style={styles.questionSubtitle}>Untuk analisis cuaca dan ketinggian.</ThemedText>
+
+                            <View style={styles.inputGroup}>
+                                <View style={styles.inputWrapper}>
+                                    <Ionicons name="location-outline" size={20} color="#9CA3AF" style={{ marginRight: 10 }} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Cari lokasi..."
+                                        placeholderTextColor="#9CA3AF"
+                                        value={location}
+                                        onChangeText={setLocation}
+                                    />
+                                </View>
+                                <View style={styles.inputWrapper}>
+                                    <Ionicons name="resize-outline" size={20} color="#9CA3AF" style={{ marginRight: 10 }} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Luas lahan (m²)"
+                                        placeholderTextColor="#9CA3AF"
+                                        value={area}
+                                        onChangeText={setArea}
+                                        keyboardType="numeric"
+                                    />
+                                </View>
+                            </View>
+
+                            <View style={styles.mapCard}>
+                                <WebView
+                                    style={styles.mapWebView}
+                                    source={{
+                                        html: `
+                      <!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" /><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><style>body, html, #map { width: 100%; height: 100%; margin: 0; }</style></head><body><div id="map"></div><script>var map = L.map('map', {zoomControl: false}).setView([${coordinates.latitude}, ${coordinates.longitude}], 15);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19}).addTo(map);var marker = L.marker([${coordinates.latitude}, ${coordinates.longitude}], {draggable: true}).addTo(map);marker.on('dragend', function(e) {var pos = marker.getLatLng();window.ReactNativeWebView.postMessage(JSON.stringify({latitude: pos.lat, longitude: pos.lng}));});map.on('click', function(e) {marker.setLatLng(e.latlng);window.ReactNativeWebView.postMessage(JSON.stringify({latitude: e.latlng.lat, longitude: e.latlng.lng}));});</script></body></html>
+                    `
+                                    }}
+                                    onMessage={(event) => {
+                                        try {
+                                            const data = JSON.parse(event.nativeEvent.data);
+                                            setCoordinates({ latitude: data.latitude, longitude: data.longitude });
+                                        } catch (e) { }
+                                    }}
+                                />
+                                <TouchableOpacity
+                                    style={styles.gpsButton}
+                                    onPress={handleGetLocation}
+                                    disabled={loadingLocation}
+                                >
+                                    {loadingLocation ? (
+                                        <ActivityIndicator size="small" color="#059669" />
+                                    ) : (
+                                        <>
+                                            <Ionicons name="locate" size={18} color="#059669" />
+                                            <ThemedText style={styles.gpsText}>Gunakan GPS</ThemedText>
+                                        </>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
                         </View>
+                    )}
 
-                        <Pressable
-                            style={styles.gpsButton}
-                            onPress={handleGetLocation}
-                            disabled={loadingLocation}
-                        >
-                            <Ionicons name="locate" size={20} color="#4CAF50" />
-                            <ThemedText style={styles.gpsButtonText}>
-                                {loadingLocation ? 'Mengambil lokasi...' : 'Gunakan GPS Saya'}
-                            </ThemedText>
-                        </Pressable>
-                    </View>
-                )}
+                    {/* STEP 3: Sun Condition */}
+                    {step === 3 && (
+                        <View style={styles.stepContainer}>
+                            <ThemedText type="title" style={styles.questionTitle}>Kondisi Matahari?</ThemedText>
+                            <ThemedText style={styles.questionSubtitle}>Penting untuk fotosintesis tanaman.</ThemedText>
 
-                {/* Step 3: Sun Condition */}
-                {step === 3 && (
-                    <View style={styles.stepContent}>
-                        <ThemedText style={styles.question}>
-                            Bagaimana kondisi matahari di sana?
-                        </ThemedText>
-
-                        <Pressable
-                            style={[
-                                styles.optionCard,
-                                sunCondition === 'full' && styles.optionCardSelected,
-                            ]}
-                            onPress={() => setSunCondition('full')}
-                        >
-                            <Ionicons
-                                name={sunCondition === 'full' ? 'radio-button-on' : 'radio-button-off'}
-                                size={24}
-                                color="#4CAF50"
-                            />
-                            <View style={styles.optionContent}>
-                                <ThemedText style={styles.optionTextBold}>
-                                    ☀️ Sinar Penuh: 6 jam atau lebih
-                                </ThemedText>
+                            <View style={styles.cardList}>
+                                {[
+                                    { id: 'full', label: 'Sinar Penuh', icon: 'sunny', sub: '> 6 jam sinar langsung' },
+                                    { id: 'partial', label: 'Sebagian Teduh', icon: 'partly-sunny', sub: '3 - 6 jam sinar' },
+                                    { id: 'shade', label: 'Teduh', icon: 'cloudy', sub: '< 3 jam sinar' },
+                                ].map((item) => (
+                                    <Pressable
+                                        key={item.id}
+                                        style={[
+                                            styles.selectionCard,
+                                            sunCondition === item.id && styles.selectionCardActive
+                                        ]}
+                                        onPress={() => setSunCondition(item.id as SunCondition)}
+                                    >
+                                        <View style={[styles.iconContainer, sunCondition === item.id && styles.iconContainerActive]}>
+                                            <Ionicons name={item.icon as any} size={24} color={sunCondition === item.id ? '#059669' : '#F59E0B'} />
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <ThemedText type="defaultSemiBold" style={[styles.cardTitle, sunCondition === item.id && styles.textActive]}>{item.label}</ThemedText>
+                                            <ThemedText style={styles.cardSubtitle}>{item.sub}</ThemedText>
+                                        </View>
+                                        <View style={[styles.radioOuter, sunCondition === item.id && styles.radioOuterActive]}>
+                                            {sunCondition === item.id && <View style={styles.radioInner} />}
+                                        </View>
+                                    </Pressable>
+                                ))}
                             </View>
-                        </Pressable>
+                        </View>
+                    )}
 
-                        <Pressable
-                            style={[
-                                styles.optionCard,
-                                sunCondition === 'partial' && styles.optionCardSelected,
-                            ]}
-                            onPress={() => setSunCondition('partial')}
-                        >
-                            <Ionicons
-                                name={sunCondition === 'partial' ? 'radio-button-on' : 'radio-button-off'}
-                                size={24}
-                                color="#4CAF50"
-                            />
-                            <View style={styles.optionContent}>
-                                <ThemedText style={styles.optionTextBold}>
-                                    ⛅ Sebagian Teduh: 3 - 6 jam
-                                </ThemedText>
-                            </View>
-                        </Pressable>
+                </ScrollView>
+            </KeyboardAvoidingView>
 
-                        <Pressable
-                            style={[
-                                styles.optionCard,
-                                sunCondition === 'shade' && styles.optionCardSelected,
-                            ]}
-                            onPress={() => setSunCondition('shade')}
-                        >
-                            <Ionicons
-                                name={sunCondition === 'shade' ? 'radio-button-on' : 'radio-button-off'}
-                                size={24}
-                                color="#4CAF50"
-                            />
-                            <View style={styles.optionContent}>
-                                <ThemedText style={styles.optionTextBold}>
-                                    🌥️ Teduh: Kurang dari 3 jam
-                                </ThemedText>
-                            </View>
-                        </Pressable>
-                    </View>
-                )}
-            </ScrollView>
-
-            {/* Next Button */}
+            {/* Footer */}
             <View style={styles.footer}>
                 <ThemedButton
                     title={step === 3 ? 'Lihat Hasil' : 'Selanjutnya'}
-                    disabled={!isStepValid()}
                     onPress={handleNext}
+                    disabled={!isStepValid()}
+                    variant="primary"
+                    icon={step !== 3 ? <Ionicons name="arrow-forward" size={20} color="#fff" /> : undefined}
                 />
             </View>
-        </ThemedView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F0F9F4',
+        backgroundColor: '#FFFFFF', // Clean White
     },
+
+    // Header
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
-        paddingTop: 50,
-        paddingBottom: 20,
+        paddingTop: Platform.OS === 'ios' ? 60 : 40,
+        paddingBottom: 10,
         backgroundColor: '#fff',
+    },
+    backBtn: {
+        padding: 8,
+        marginLeft: -8,
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '600',
-        color: '#2D5F3F',
+        color: '#111827',
     },
-    scrollContent: {
-        padding: 20,
+
+    // Progress Bar
+    progressContainer: {
+        paddingHorizontal: 20,
+        marginBottom: 10,
     },
-    stepContent: {
-        gap: 15,
+    progressTrack: {
+        height: 4,
+        backgroundColor: '#F3F4F6',
+        borderRadius: 2,
+        marginBottom: 8,
+        overflow: 'hidden',
     },
-    question: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#1a1a1a',
-        marginBottom: 20,
-        lineHeight: 32,
+    progressFill: {
+        height: '100%',
+        backgroundColor: '#059669', // Primary Green
+        borderRadius: 2,
     },
-    optionCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        padding: 20,
-        borderRadius: 12,
-        borderWidth: 2,
-        borderColor: '#E8F5E9',
-        gap: 15,
-    },
-    optionCardSelected: {
-        borderColor: '#4CAF50',
-        backgroundColor: '#E8F5E9',
-    },
-    optionText: {
-        fontSize: 16,
-        color: '#333',
-    },
-    optionContent: {
-        flex: 1,
-    },
-    optionTextBold: {
-        fontSize: 16,
-        color: '#333',
+    stepText: {
+        fontSize: 12,
+        color: '#6B7280',
+        textAlign: 'right',
         fontWeight: '500',
     },
-    inputRow: {
-        flexDirection: 'row',
+
+    // Content Area
+    content: {
+        padding: 20,
+        paddingBottom: 100,
+    },
+    stepContainer: {
         gap: 10,
+    },
+    questionTitle: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: '#111827',
+        marginBottom: 4,
+    },
+    questionSubtitle: {
+        fontSize: 15,
+        color: '#6B7280',
+        marginBottom: 20,
+        lineHeight: 22,
+    },
+
+    // Card Selection Styles
+    cardList: {
+        gap: 12,
+    },
+    selectionCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#E5E7EB', // Light Border
+        gap: 16,
+    },
+    selectionCardActive: {
+        borderColor: '#059669',
+        backgroundColor: '#ECFDF5', // Very light green bg
+    },
+    iconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        backgroundColor: '#F3F4F6',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconContainerActive: {
+        backgroundColor: '#fff',
+    },
+    cardTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#374151',
+        marginBottom: 2,
+    },
+    textActive: {
+        color: '#059669',
+    },
+    cardSubtitle: {
+        fontSize: 13,
+        color: '#6B7280',
+    },
+    radioOuter: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        borderWidth: 2,
+        borderColor: '#D1D5DB',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    radioOuterActive: {
+        borderColor: '#059669',
+    },
+    radioInner: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: '#059669',
+    },
+
+    // Inputs
+    inputGroup: {
+        gap: 12,
+        marginBottom: 20,
+    },
+    inputWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F9FAFB',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 12,
+        paddingHorizontal: 16,
     },
     input: {
         flex: 1,
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 15,
-        fontSize: 16,
-        borderWidth: 1,
-        borderColor: '#E0E0E0',
+        paddingVertical: 14,
+        fontSize: 15,
+        color: '#111827',
     },
-    inputSmall: {
-        flex: 0.4,
-    },
-    mapContainer: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
+
+    // Map
+    mapCard: {
+        height: 250,
+        borderRadius: 16,
         overflow: 'hidden',
-        height: 300,
         borderWidth: 1,
-        borderColor: '#E0E0E0',
+        borderColor: '#E5E7EB',
+        position: 'relative',
     },
-    map: {
+    mapWebView: {
         flex: 1,
     },
-    mapText: {
-        marginTop: 15,
-        fontSize: 14,
-        color: '#666',
-        textAlign: 'center',
-    },
     gpsButton: {
+        position: 'absolute',
+        bottom: 16,
+        right: 16,
+        backgroundColor: '#fff',
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 20,
+        gap: 6,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    gpsText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#059669',
+    },
+
+    // Footer
+    footer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: '#fff',
+        padding: 20,
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6',
+    },
+    nextButton: {
+        backgroundColor: '#059669', // Primary Green
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#fff',
-        padding: 15,
-        borderRadius: 12,
-        gap: 10,
-        borderWidth: 2,
-        borderColor: '#4CAF50',
+        paddingVertical: 16,
+        borderRadius: 16,
+        gap: 8,
+        shadowColor: '#059669',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
     },
-    gpsButtonText: {
+    nextButtonDisabled: {
+        backgroundColor: '#E5E7EB',
+        shadowOpacity: 0,
+        elevation: 0,
+    },
+    nextButtonText: {
+        color: '#fff',
         fontSize: 16,
-        color: '#4CAF50',
-        fontWeight: '600',
-    },
-    footer: {
-        padding: 20,
-        backgroundColor: '#fff',
-        borderTopWidth: 1,
-        borderTopColor: '#E0E0E0',
+        fontWeight: 'bold',
     },
 });

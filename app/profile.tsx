@@ -1,253 +1,457 @@
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import {
     Dimensions,
+    Platform,
     Pressable,
     ScrollView,
+    StatusBar,
     StyleSheet,
+    TouchableOpacity,
     View,
 } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
-// Dummy Data
-const MY_PROFILE = {
-    name: 'Agri',
+// --- KONFIGURASI GRID ---
+const PADDING_HORIZONTAL = 24;
+const GAP = 16;
+// Hitungan Pas 2 Kolom:
+const COLUMN_WIDTH = (width - (PADDING_HORIZONTAL * 2) - GAP) / 2;
+
+const USER_PROFILE = {
+    name: 'Agri Master',
+    handle: '@agrimaster_id',
+    bio: 'Petani urban spesialis hidroponik & tanaman obat. Mari hijaukan bumi! 🌿',
     level: 19,
-    xp: 1984,
-    likes: 20000,
-    avatar: require('@/assets/images/homepage-1.png'), // Placeholder
+    xpCurrent: 1984,
+    xpMax: 2500,
+    stats: { plants: 42, likes: '20.5K', harvests: 156 },
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=400&auto=format&fit=crop',
+    coverImage: 'https://images.unsplash.com/photo-1622383563227-044011358d20?q=80&w=800&auto=format&fit=crop', // Gambar kebun estetik
+    badges: [
+        { id: 1, icon: 'water', color: '#3B82F6', bg: '#EFF6FF', name: 'Penyiram' },
+        { id: 2, icon: 'leaf', color: '#10B981', bg: '#ECFDF5', name: 'Green Thumb' },
+        { id: 3, icon: 'trophy', color: '#F59E0B', bg: '#FFFBEB', name: 'Juara' },
+    ],
     plants: [
-        { id: 1, name: 'Kentang', image: require('@/assets/images/kentang.png') },
-        { id: 2, name: 'Kacang Hijau', image: require('@/assets/images/homepage-2.png') },
-        { id: 3, name: 'Vanilla', image: require('@/assets/images/homepage-3.png') },
-        { id: 4, name: 'Kayu Manis', image: require('@/assets/images/homepage-1.png') },
-        { id: 5, name: 'Terong', image: require('@/assets/images/homepage-2.png') },
-        { id: 6, name: 'Kemangi', image: require('@/assets/images/homepage-3.png') },
+        { id: 1, name: 'Kentang', status: 'Siap Panen', image: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?q=80&w=400', progress: 100, color: '#10B981' },
+        { id: 2, name: 'Kacang Hijau', status: 'Berbunga', image: 'https://images.unsplash.com/photo-1567306301408-9b74779a11af?q=80&w=400', progress: 75, color: '#F59E0B' },
+        { id: 3, name: 'Vanilla', status: 'Butuh Air', image: 'https://images.unsplash.com/photo-1606900165780-1a74e09ba4d7?q=80&w=400', progress: 40, color: '#EF4444' },
+        { id: 4, name: 'Kayu Manis', status: 'Tumbuh', image: 'https://images.unsplash.com/photo-1549589379-91899e69c020?q=80&w=400', progress: 60, color: '#10B981' },
+        { id: 5, name: 'Terong', status: 'Berbuah', image: 'https://images.unsplash.com/photo-1623955938225-b873e27a6962?q=80&w=400', progress: 85, color: '#8B5CF6' },
+        { id: 6, name: 'Kemangi', status: 'Sehat', image: 'https://images.unsplash.com/photo-1612509833501-c8167f259691?q=80&w=400', progress: 90, color: '#10B981' },
     ]
 };
 
 export default function ProfileScreen() {
+    const xpPercentage = (USER_PROFILE.xpCurrent / USER_PROFILE.xpMax) * 100;
+
     return (
-        <ThemedView style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <Pressable onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#2D5F3F" />
-                </Pressable>
-                <ThemedText style={styles.headerTitle}>Profil Saya</ThemedText>
-                <Pressable style={styles.settingsButton}>
-                    <Ionicons name="settings-outline" size={24} color="#2D5F3F" />
-                </Pressable>
-            </View>
+        <View style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-            <ScrollView contentContainerStyle={styles.content}>
-                {/* Profile Section */}
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+
+                {/* 1. HEADER & COVER */}
+                <View style={styles.headerContainer}>
+                    <Image source={{ uri: USER_PROFILE.coverImage }} style={styles.coverImage} contentFit="cover" />
+                    <View style={styles.overlay} />
+
+                    {/* Navbar Absolute */}
+                    <View style={styles.navBar}>
+                        <TouchableOpacity onPress={() => router.back()} style={styles.navButton}>
+                            <Ionicons name="arrow-back" size={24} color="#FFF" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                {/* 2. PROFILE INFO (Overlapping) */}
                 <View style={styles.profileSection}>
-                    <View style={styles.avatarWrapper}>
-                        <Image source={MY_PROFILE.avatar} style={styles.avatar} contentFit="cover" />
-                        <Pressable style={styles.cameraButton}>
-                            <Ionicons name="camera" size={16} color="#fff" />
-                        </Pressable>
+                    <View style={styles.avatarRow}>
+                        <View style={styles.avatarWrapper}>
+                            <Image source={{ uri: USER_PROFILE.avatar }} style={styles.avatar} />
+                            <Pressable style={styles.editIcon}>
+                                <Ionicons name="camera" size={14} color="#FFF" />
+                            </Pressable>
+                        </View>
+                        <View style={styles.headerActions}>
+                            <TouchableOpacity style={styles.editProfileBtn}>
+                                <ThemedText style={styles.editProfileText}>Edit Profil</ThemedText>
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
-                    <View style={styles.likeContainer}>
-                        <View style={styles.likeIconBg}>
-                            <Ionicons name="heart" size={20} color="#FF5252" />
-                        </View>
-                        <ThemedText style={styles.likeCount}>{MY_PROFILE.likes}</ThemedText>
+                    <View style={styles.textInfo}>
+                        <ThemedText type="title" style={styles.name}>{USER_PROFILE.name}</ThemedText>
+                        <ThemedText style={styles.handle}>{USER_PROFILE.handle}</ThemedText>
+                        <ThemedText style={styles.bio}>{USER_PROFILE.bio}</ThemedText>
                     </View>
 
-                    <ThemedText style={styles.userName}>{MY_PROFILE.name}</ThemedText>
-
-                    <View style={styles.levelContainer}>
-                        <View style={styles.levelInfo}>
-                            <ThemedText style={styles.levelText}>Level {MY_PROFILE.level}</ThemedText>
-                            <ThemedText style={styles.xpText}>{MY_PROFILE.xp} Xp</ThemedText>
+                    {/* Stats Row */}
+                    <View style={styles.statsCard}>
+                        <View style={styles.statItem}>
+                            <ThemedText type="defaultSemiBold" style={styles.statValue}>{USER_PROFILE.level}</ThemedText>
+                            <ThemedText style={styles.statLabel}>Level</ThemedText>
                         </View>
-                        <View style={styles.progressBarBg}>
-                            <View style={[styles.progressBarFill, { width: '60%' }]} />
+                        <View style={styles.verticalLine} />
+                        <View style={styles.statItem}>
+                            <ThemedText type="defaultSemiBold" style={styles.statValue}>{USER_PROFILE.stats.plants}</ThemedText>
+                            <ThemedText style={styles.statLabel}>Tanaman</ThemedText>
+                        </View>
+                        <View style={styles.verticalLine} />
+                        <View style={styles.statItem}>
+                            <ThemedText type="defaultSemiBold" style={styles.statValue}>{USER_PROFILE.stats.likes}</ThemedText>
+                            <ThemedText style={styles.statLabel}>Likes</ThemedText>
+                        </View>
+                    </View>
+
+                    {/* XP Progress */}
+                    <View style={styles.xpSection}>
+                        <View style={styles.xpHeader}>
+                            <ThemedText style={styles.xpLabel}>Menuju Level {USER_PROFILE.level + 1}</ThemedText>
+                            <ThemedText style={styles.xpValue}>{USER_PROFILE.xpCurrent} / {USER_PROFILE.xpMax} XP</ThemedText>
+                        </View>
+                        <View style={styles.xpTrack}>
+                            <View style={[styles.xpFill, { width: `${xpPercentage}%` }]} />
                         </View>
                     </View>
                 </View>
 
-                {/* Plants Grid */}
-                <View style={styles.plantsGrid}>
-                    {MY_PROFILE.plants.map((plant) => (
-                        <View key={plant.id} style={styles.plantCard}>
-                            <Image source={plant.image} style={styles.plantImage} contentFit="cover" />
-                            <View style={styles.plantNameOverlay}>
-                                <ThemedText style={styles.plantName}>{plant.name}</ThemedText>
+                <View style={styles.divider} />
+
+                {/* 3. BADGES */}
+                <View style={styles.sectionContainer}>
+                    <ThemedText type="subtitle" style={styles.sectionTitle}>Pencapaian</ThemedText>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.badgesScroll}>
+                        {USER_PROFILE.badges.map((badge) => (
+                            <View key={badge.id} style={[styles.badgeCard, { backgroundColor: badge.bg }]}>
+                                <Ionicons name={badge.icon as any} size={20} color={badge.color} />
+                                <ThemedText style={[styles.badgeText, { color: badge.color }]}>{badge.name}</ThemedText>
                             </View>
-                        </View>
-                    ))}
+                        ))}
+                    </ScrollView>
                 </View>
+
+                {/* 4. GARDEN GRID */}
+                <View style={styles.sectionContainer}>
+                    <View style={styles.sectionHeader}>
+                        <ThemedText type="subtitle" style={styles.sectionTitle}>Kebun Saya</ThemedText>
+                        <TouchableOpacity>
+                            <ThemedText style={styles.seeAll}>Lihat Semua</ThemedText>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.grid}>
+                        {USER_PROFILE.plants.map((plant) => (
+                            <Pressable
+                                key={plant.id}
+                                style={styles.plantCard}
+                                onPress={() => router.push({ pathname: '/missions/[id]', params: { id: plant.id.toString() } })}
+                            >
+                                {/* Image */}
+                                <Image source={{ uri: plant.image }} style={styles.plantImage} contentFit="cover" />
+
+                                {/* Status Badge Over Image */}
+                                <View style={styles.statusBadge}>
+                                    <ThemedText style={styles.statusText}>{plant.status}</ThemedText>
+                                </View>
+
+                                {/* Info */}
+                                <View style={styles.plantInfo}>
+                                    <ThemedText type="defaultSemiBold" style={styles.plantName}>{plant.name}</ThemedText>
+
+                                    {/* Mini Progress */}
+                                    <View style={styles.miniProgressTrack}>
+                                        <View style={[styles.miniProgressFill, { width: `${plant.progress}%`, backgroundColor: plant.color }]} />
+                                    </View>
+                                </View>
+                            </Pressable>
+                        ))}
+                    </View>
+                </View>
+
             </ScrollView>
-        </ThemedView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#A5D6A7', // Light green background like in design
+        backgroundColor: '#FFFFFF',
     },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingTop: 50,
-        paddingBottom: 20,
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        backgroundColor: '#fff',
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#2D5F3F',
-    },
-    settingsButton: {
-        width: 40,
-        height: 40,
-        backgroundColor: '#fff',
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    content: {
-        paddingBottom: 40,
-    },
-    profileSection: {
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        marginBottom: 30,
+
+    // COVER
+    headerContainer: {
+        height: 180,
+        width: '100%',
         position: 'relative',
     },
+    coverImage: {
+        width: '100%',
+        height: '100%',
+    },
+    overlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.2)', // Slight dim for text visibility if needed
+    },
+    navBar: {
+        position: 'absolute',
+        top: Platform.OS === 'ios' ? 50 : 30,
+        left: 0,
+        right: 0,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        zIndex: 10,
+    },
+    navButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backdropFilter: 'blur(4px)',
+    },
+
+    // PROFILE INFO
+    profileSection: {
+        paddingHorizontal: 24,
+        marginTop: -40, // Pull up to overlap cover
+    },
+    avatarRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        marginBottom: 16,
+    },
     avatarWrapper: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        borderWidth: 4,
-        borderColor: '#fff',
-        marginBottom: 15,
         position: 'relative',
     },
     avatar: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 60,
+        width: 88,
+        height: 88,
+        borderRadius: 44,
+        borderWidth: 4,
+        borderColor: '#FFFFFF', // White border to cut out from cover
     },
-    cameraButton: {
+    editIcon: {
         position: 'absolute',
         bottom: 0,
         right: 0,
-        backgroundColor: '#4CAF50',
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        backgroundColor: '#059669',
+        width: 28,
+        height: 28,
+        borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 2,
-        borderColor: '#fff',
+        borderColor: '#FFFFFF',
     },
-    likeContainer: {
-        position: 'absolute',
-        right: 40,
-        top: 60,
-        alignItems: 'center',
-    },
-    likeIconBg: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#fff',
-        alignItems: 'center',
-        justifyContent: 'center',
+    headerActions: {
         marginBottom: 4,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
     },
-    likeCount: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 12,
+    editProfileBtn: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        backgroundColor: '#fff',
     },
-    userName: {
+    editProfileText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#374151',
+    },
+    textInfo: {
+        marginBottom: 20,
+    },
+    name: {
         fontSize: 24,
+        fontWeight: '800',
+        color: '#111827',
+        marginBottom: 2,
+    },
+    handle: {
+        fontSize: 14,
+        color: '#059669',
+        fontWeight: '600',
+        marginBottom: 8,
+    },
+    bio: {
+        fontSize: 14,
+        color: '#6B7280',
+        lineHeight: 20,
+    },
+
+    // STATS
+    statsCard: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#F9FAFB',
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        marginBottom: 20,
+    },
+    statItem: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    statValue: {
+        fontSize: 18,
         fontWeight: 'bold',
-        color: '#fff',
-        marginBottom: 15,
+        color: '#111827',
     },
-    levelContainer: {
-        width: '100%',
+    statLabel: {
+        fontSize: 12,
+        color: '#6B7280',
+        marginTop: 4,
     },
-    levelInfo: {
+    verticalLine: {
+        width: 1,
+        height: 24,
+        backgroundColor: '#E5E7EB',
+    },
+
+    // XP
+    xpSection: {
+        marginBottom: 24,
+    },
+    xpHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         marginBottom: 8,
     },
-    levelText: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#fff',
+    xpLabel: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#374151',
     },
-    xpText: {
-        fontSize: 14,
-        color: '#E8F5E9',
+    xpValue: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#059669',
     },
-    progressBarBg: {
+    xpTrack: {
         height: 8,
-        backgroundColor: 'rgba(255,255,255,0.3)',
+        backgroundColor: '#F3F4F6',
         borderRadius: 4,
+        overflow: 'hidden',
     },
-    progressBarFill: {
+    xpFill: {
         height: '100%',
-        backgroundColor: '#fff',
+        backgroundColor: '#059669',
         borderRadius: 4,
     },
-    plantsGrid: {
+
+    divider: {
+        height: 8,
+        backgroundColor: '#F9FAFB',
+        marginBottom: 24,
+    },
+
+    // SECTIONS
+    sectionContainer: {
+        paddingHorizontal: 24,
+        marginBottom: 24,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#111827',
+    },
+    seeAll: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#059669',
+    },
+
+    // BADGES
+    badgesScroll: {
+        gap: 12,
+    },
+    badgeCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 12,
+        gap: 8,
+    },
+    badgeText: {
+        fontSize: 13,
+        fontWeight: '600',
+    },
+
+    // GRID
+    grid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        paddingHorizontal: 15,
-        gap: 15,
+        gap: GAP,
     },
     plantCard: {
-        width: (width - 45) / 2,
-        aspectRatio: 1,
-        borderRadius: 12,
+        width: COLUMN_WIDTH,
+        backgroundColor: '#fff',
+        borderRadius: 16,
         overflow: 'hidden',
-        position: 'relative',
-        borderWidth: 4,
-        borderColor: '#81C784',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+        marginBottom: 8,
     },
     plantImage: {
         width: '100%',
-        height: '100%',
+        height: 140, // Height fixed for neat grid
     },
-    plantNameOverlay: {
+    statusBadge: {
         position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        padding: 8,
+        top: 8,
+        left: 8,
+        backgroundColor: 'rgba(255,255,255,0.9)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    statusText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#111827',
+    },
+    plantInfo: {
+        padding: 12,
     },
     plantName: {
-        color: '#fff',
-        fontWeight: 'bold',
         fontSize: 14,
+        fontWeight: '700',
+        color: '#111827',
+        marginBottom: 8,
+    },
+    miniProgressTrack: {
+        height: 4,
+        backgroundColor: '#F3F4F6',
+        borderRadius: 2,
+        overflow: 'hidden',
+    },
+    miniProgressFill: {
+        height: '100%',
+        borderRadius: 2,
     },
 });

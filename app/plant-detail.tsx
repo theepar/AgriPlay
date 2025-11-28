@@ -1,265 +1,309 @@
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import {
+    Dimensions,
+    Platform,
     Pressable,
     ScrollView,
+    StatusBar,
     StyleSheet,
+    TouchableOpacity,
     View,
 } from 'react-native';
 
-// Dummy plant tasks (like Duolingo lessons)
-const PLANT_TASKS = [
-    { id: 1, title: 'Teliti Tanamannya', completed: false, xp: 100 },
-    { id: 2, title: 'Kumpulkan Barang Persiapan', completed: false, xp: 100 },
-    { id: 3, title: 'Buat Pot Khusus', completed: false, xp: 100 },
-    { id: 4, title: 'Mulai Menanam', completed: false, xp: 100 },
+const { width } = Dimensions.get('window');
+
+// --- DATA ---
+const PLANT_INFO = {
+    name: 'Kentang Granola',
+    latin: 'Solanum tuberosum',
+    image: 'https://images.unsplash.com/photo-1593105544559-ecb03bf76f8c?q=80&w=800&auto=format&fit=crop',
+    desc: 'Kentang Granola populer karena teksturnya yang tidak mudah hancur. Cocok untuk pemula.'
+};
+
+const INITIAL_TASKS = [
+    { id: 1, title: 'Analisis Bibit', completed: true, xp: 50 },
+    { id: 2, title: 'Siapkan Media Tanam', completed: false, xp: 100 },
+    { id: 3, title: 'Penyiraman Pertama', completed: false, xp: 75 },
+    { id: 4, title: 'Jadwal Pemupukan', completed: false, xp: 150 },
 ];
 
 export default function PlantDetailScreen() {
-    const params = useLocalSearchParams();
-    const [tasks, setTasks] = useState(PLANT_TASKS);
-    const [progress, setProgress] = useState(0);
+    const [tasks, setTasks] = useState(INITIAL_TASKS);
 
-    const completedTasks = tasks.filter(t => t.completed).length;
-    const totalTasks = tasks.length;
-    const progressPercentage = (completedTasks / totalTasks) * 100;
+    // Hitung Progress
+    const completedCount = tasks.filter(t => t.completed).length;
+    const progress = (completedCount / tasks.length) * 100;
 
-    const handleTaskToggle = (taskId: number) => {
-        setTasks(tasks.map(task =>
-            task.id === taskId ? { ...task, completed: !task.completed } : task
-        ));
+    const handleToggle = (id: number) => {
+        setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
     };
 
     return (
-        <ThemedView style={styles.container}>
-            {/* Header */}
+        <View style={styles.container}>
+            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
+            {/* 1. SIMPLE HEADER */}
             <View style={styles.header}>
-                <Pressable onPress={() => router.navigate('/')}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
-                </Pressable>
-                <ThemedText style={styles.headerTitle}>Rekomendasi Tanaman</ThemedText>
-                <View style={{ width: 24 }} />
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                    <Ionicons name="arrow-back" size={24} color="#1F2937" />
+                </TouchableOpacity>
+                <ThemedText type="subtitle" style={styles.headerTitle}>Detail Tanaman</ThemedText>
+                <TouchableOpacity>
+                    <Ionicons name="ellipsis-horizontal" size={24} color="#1F2937" />
+                </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
-                {/* Hero Section */}
-                <View style={styles.heroSection}>
-                    <Image
-                        source={require('@/assets/images/kentang.png')}
-                        style={styles.heroImage}
-                        contentFit="cover"
-                    />
-                    <View style={styles.heroOverlay}>
-                        <ThemedText style={styles.plantTitle}>Kentang</ThemedText>
+            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+
+                {/* 2. IMAGE CARD */}
+                <View style={styles.imageCard}>
+                    <Image source={{ uri: PLANT_INFO.image }} style={styles.plantImage} contentFit="cover" />
+                    <View style={styles.xpBadge}>
+                        <Ionicons name="flash" size={14} color="#F59E0B" />
+                        <ThemedText style={styles.xpText}>Level 1</ThemedText>
                     </View>
                 </View>
 
-                {/* Description */}
-                <View style={styles.descriptionCard}>
-                    <ThemedText style={styles.description}>
-                        Kentang (ubi kentang, ubi belanda, atau tata; disebut "Kentang" saja) Kentang adalah tanaman dari suku Solanaceae yang memiliki umbi batang yang dapat dimakan, dan merupakan pangan pokok dari Amerika Selatan. Nama ini dimana berasal dari kata "papa", kata dalam bahasa Amerika Selatan, kekurangan satu atau lain macam siapolysin dipercayakan dari Amerika Selatan.
-                    </ThemedText>
+                {/* 3. TITLE & INFO */}
+                <View style={styles.infoSection}>
+                    <ThemedText type="title" style={styles.plantName}>{PLANT_INFO.name}</ThemedText>
+                    <ThemedText style={styles.plantLatin}>{PLANT_INFO.latin}</ThemedText>
+                    <ThemedText style={styles.description}>{PLANT_INFO.desc}</ThemedText>
                 </View>
 
-                {/* Progress Section */}
-                <View style={styles.progressSection}>
-                    <View style={styles.progressHeader}>
-                        <ThemedText style={styles.progressTitle}>Progress</ThemedText>
-                        <ThemedText style={styles.progressCount}>
-                            {completedTasks}/{totalTasks}
-                        </ThemedText>
+                {/* 4. SIMPLE PROGRESS */}
+                <View style={styles.progressContainer}>
+                    <View style={styles.progressLabelRow}>
+                        <ThemedText type="defaultSemiBold" style={styles.label}>Progress Misi</ThemedText>
+                        <ThemedText style={styles.percent}>{Math.round(progress)}%</ThemedText>
                     </View>
-                    <View style={styles.progressBar}>
-                        <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
+                    <View style={styles.track}>
+                        <View style={[styles.fill, { width: `${progress}%` }]} />
                     </View>
-                    <ThemedText style={styles.progressLabel}>Satupagi</ThemedText>
                 </View>
 
-                {/* Tasks List */}
-                <View style={styles.tasksSection}>
+                {/* 5. CLEAN TASK LIST */}
+                <ThemedText type="subtitle" style={styles.sectionTitle}>Daftar Tugas</ThemedText>
+                <View style={styles.taskList}>
                     {tasks.map((task) => (
                         <Pressable
                             key={task.id}
-                            style={styles.taskCard}
-                            onPress={() => handleTaskToggle(task.id)}
+                            style={[styles.taskItem, task.completed && styles.taskItemDone]}
+                            onPress={() => handleToggle(task.id)}
                         >
-                            <View style={styles.taskLeft}>
-                                <View style={[
-                                    styles.taskCheckbox,
-                                    task.completed && styles.taskCheckboxCompleted
-                                ]}>
-                                    {task.completed && (
-                                        <Ionicons name="checkmark" size={16} color="#fff" />
-                                    )}
-                                </View>
-                                <ThemedText style={[
-                                    styles.taskTitle,
-                                    task.completed && styles.taskTitleCompleted
-                                ]}>
-                                    {task.title}
-                                </ThemedText>
+                            <View style={[styles.checkbox, task.completed && styles.checkboxDone]}>
+                                {task.completed && <Ionicons name="checkmark" size={14} color="#fff" />}
                             </View>
-                            <ThemedText style={styles.taskXp}>+{task.xp} xp</ThemedText>
+                            <View style={{ flex: 1 }}>
+                                <ThemedText type="defaultSemiBold" style={[styles.taskTitle, task.completed && styles.textDone]}>{task.title}</ThemedText>
+                                <ThemedText style={styles.taskXp}>+{task.xp} XP</ThemedText>
+                            </View>
                         </Pressable>
                     ))}
                 </View>
-
-                {/* Start Button */}
-                <View style={{ marginHorizontal: 20, marginTop: 30 }}>
-                    <ThemedButton
-                        title="Mulai Berkebun"
-                        onPress={() => router.push({ pathname: '/missions/[id]', params: { id: '1' } })}
-                    />
-                </View>
             </ScrollView>
-        </ThemedView>
+
+            {/* 6. BOTTOM BUTTON */}
+            <View style={styles.footer}>
+                <ThemedButton
+                    title="Mulai Berkebun"
+                    onPress={() => router.push({ pathname: '/missions/[id]', params: { id: '1' } })}
+                    variant="primary"
+                />
+            </View>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F0F9F4',
+        backgroundColor: '#FFFFFF', // Clean White
     },
+    // Header
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
-        paddingTop: 50,
-        paddingBottom: 20,
-        backgroundColor: '#4CAF50',
+        paddingTop: Platform.OS === 'ios' ? 60 : 40,
+        paddingBottom: 10,
+        backgroundColor: '#fff',
+    },
+    backBtn: {
+        padding: 8,
+        marginLeft: -8,
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '600',
-        color: '#fff',
+        color: '#1F2937',
     },
-    scrollContent: {
-        paddingBottom: 30,
+    content: {
+        padding: 20,
+        paddingBottom: 100,
     },
-    heroSection: {
-        height: 200,
+    // Image
+    imageCard: {
+        height: 220,
+        borderRadius: 24,
+        overflow: 'hidden',
         position: 'relative',
+        marginBottom: 20,
+        backgroundColor: '#F3F4F6',
     },
-    heroImage: {
+    plantImage: {
         width: '100%',
         height: '100%',
     },
-    heroOverlay: {
+    xpBadge: {
         position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        padding: 20,
+        top: 16,
+        left: 16,
+        backgroundColor: 'rgba(255,255,255,0.9)',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
     },
-    plantTitle: {
-        fontSize: 32,
+    xpText: {
+        fontSize: 12,
         fontWeight: 'bold',
-        color: '#fff',
+        color: '#F59E0B',
     },
-    descriptionCard: {
-        backgroundColor: '#fff',
-        margin: 20,
-        padding: 20,
-        borderRadius: 16,
-        borderWidth: 2,
-        borderColor: '#E8F5E9',
+    // Info
+    infoSection: {
+        marginBottom: 24,
+    },
+    plantName: {
+        fontSize: 26,
+        fontWeight: '800',
+        color: '#111827',
+        marginBottom: 4,
+    },
+    plantLatin: {
+        fontSize: 14,
+        color: '#4ADE80', // Green accent
+        fontWeight: '600',
+        marginBottom: 12,
+        fontStyle: 'italic',
     },
     description: {
-        fontSize: 14,
+        fontSize: 15,
+        color: '#6B7280',
         lineHeight: 22,
-        color: '#666',
     },
-    progressSection: {
-        backgroundColor: '#4CAF50',
-        marginHorizontal: 20,
-        marginBottom: 20,
-        padding: 20,
+    // Progress
+    progressContainer: {
+        marginBottom: 24,
+        backgroundColor: '#F9FAFB',
+        padding: 16,
         borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
     },
-    progressHeader: {
+    progressLabelRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 10,
-    },
-    progressTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
-    progressCount: {
-        fontSize: 16,
-        color: '#fff',
-    },
-    progressBar: {
-        height: 12,
-        backgroundColor: 'rgba(255,255,255,0.3)',
-        borderRadius: 6,
-        overflow: 'hidden',
         marginBottom: 8,
     },
-    progressFill: {
+    label: { fontSize: 14, fontWeight: '600', color: '#374151' },
+    percent: { fontSize: 14, fontWeight: '700', color: '#059669' },
+    track: {
+        height: 8,
+        backgroundColor: '#E5E7EB',
+        borderRadius: 4,
+        overflow: 'hidden',
+    },
+    fill: {
         height: '100%',
-        backgroundColor: '#fff',
-        borderRadius: 6,
+        backgroundColor: '#059669', // Solid Green
+        borderRadius: 4,
     },
-    progressLabel: {
-        fontSize: 14,
-        color: '#E8F5E9',
+    // Tasks
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#111827',
+        marginBottom: 16,
     },
-    tasksSection: {
-        paddingHorizontal: 20,
+    taskList: {
         gap: 12,
     },
-    taskCard: {
+    taskItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: '#fff',
         padding: 16,
-        borderRadius: 12,
+        backgroundColor: '#FFF',
         borderWidth: 1,
-        borderColor: '#E0E0E0',
+        borderColor: '#E5E7EB',
+        borderRadius: 16,
     },
-    taskLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-        gap: 12,
+    taskItemDone: {
+        backgroundColor: '#F9FAFB',
+        borderColor: 'transparent',
     },
-    taskCheckbox: {
+    checkbox: {
         width: 24,
         height: 24,
-        borderRadius: 12,
+        borderRadius: 8,
         borderWidth: 2,
-        borderColor: '#ccc',
+        borderColor: '#D1D5DB',
+        marginRight: 14,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    taskCheckboxCompleted: {
-        backgroundColor: '#4CAF50',
-        borderColor: '#4CAF50',
+    checkboxDone: {
+        backgroundColor: '#059669',
+        borderColor: '#059669',
     },
     taskTitle: {
-        fontSize: 15,
-        color: '#333',
-        flex: 1,
+        fontSize: 16,
+        fontWeight: '500',
+        color: '#1F2937',
     },
-    taskTitleCompleted: {
+    textDone: {
+        color: '#9CA3AF',
         textDecorationLine: 'line-through',
-        color: '#999',
     },
     taskXp: {
-        fontSize: 14,
-        color: '#666',
-        fontWeight: '600',
+        fontSize: 12,
+        color: '#F59E0B',
+        marginTop: 2,
     },
+    // Footer
+    footer: {
+        position: 'absolute',
+        bottom: 0, left: 0, right: 0,
+        backgroundColor: '#fff',
+        padding: 20,
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6',
+    },
+    mainButton: {
+        backgroundColor: '#059669', // Primary Green
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        borderRadius: 16,
+        gap: 8,
+        shadowColor: '#059669',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    btnText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    }
 });
