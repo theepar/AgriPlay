@@ -1,34 +1,80 @@
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
     Dimensions,
+    Platform,
     Pressable,
     ScrollView,
+    StatusBar,
     StyleSheet,
     TextInput,
+    TouchableOpacity,
     View,
 } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
-// Dummy Data
+// Logic Grid 2 Kolom
+const PADDING_HORIZONTAL = 20;
+const GAP = 15;
+// Lebar kartu = (Layar - Padding Kiri - Padding Kanan - Jarak Tengah) / 2
+const CARD_WIDTH = (width - (PADDING_HORIZONTAL * 2) - GAP) / 2;
+
+// --- FIXED DATA (URL Stabil) ---
 const MY_PROFILE = {
-    name: 'Agri',
+    name: 'Agri Master',
     level: 19,
-    xp: 1984,
-    likes: 20000,
-    avatar: require('@/assets/images/homepage-1.png'), // Placeholder
+    xpCurrent: 1984,
+    xpMax: 2500,
+    likes: '20.5K',
+    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
     plants: [
-        { id: 1, name: 'Kentang', image: require('@/assets/images/kentang.png') },
-        { id: 2, name: 'Kacang Hijau', image: require('@/assets/images/homepage-2.png') },
-        { id: 3, name: 'Vanilla', image: require('@/assets/images/homepage-3.png') },
-        { id: 4, name: 'Kayu Manis', image: require('@/assets/images/homepage-1.png') },
-        { id: 5, name: 'Terong', image: require('@/assets/images/homepage-2.png') },
-        { id: 6, name: 'Kemangi', image: require('@/assets/images/homepage-3.png') },
+        {
+            id: 1,
+            name: 'Kentang',
+            status: 'Siap Panen',
+            // Gambar Kentang
+            image: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=500&q=80'
+        },
+        {
+            id: 2,
+            name: 'Kacang Hijau',
+            status: 'Berbunga',
+            // Gambar Kacang Polong/Hijau
+            image: 'https://images.unsplash.com/photo-1567306301408-9b74779a11af?auto=format&fit=crop&w=500&q=80'
+        },
+        {
+            id: 3,
+            name: 'Vanilla',
+            status: 'Butuh Air',
+            // Gambar Bunga Vanilla/Anggrek Putih
+            image: 'https://images.unsplash.com/photo-1606900165780-1a74e09ba4d7?auto=format&fit=crop&w=500&q=80'
+        },
+        {
+            id: 4,
+            name: 'Kayu Manis',
+            status: 'Tumbuh',
+            // Gambar Batang Kayu Manis
+            image: 'https://images.unsplash.com/photo-1549589379-91899e69c020?auto=format&fit=crop&w=500&q=80'
+        },
+        {
+            id: 5,
+            name: 'Terong',
+            status: 'Berbuah',
+            // Gambar Terong
+            image: 'https://images.unsplash.com/photo-1623955938225-b873e27a6962?auto=format&fit=crop&w=500&q=80'
+        },
+        {
+            id: 6,
+            name: 'Kemangi',
+            status: 'Sehat',
+            // Gambar Daun Kemangi/Basil
+            image: 'https://images.unsplash.com/photo-1612509833501-c8167f259691?auto=format&fit=crop&w=500&q=80'
+        },
     ]
 };
 
@@ -36,307 +82,395 @@ export default function VirtualGardenScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
 
-    return (
-        <ThemedView style={styles.container}>
-            {/* Header / Search */}
-            <View style={styles.header}>
-                <Pressable onPress={() => router.navigate('/')} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#2D5F3F" />
-                </Pressable>
-                <View style={styles.searchContainer}>
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Cari kebun"
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        onFocus={() => setIsSearching(true)}
-                        onBlur={() => setIsSearching(false)}
-                    />
-                    <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
-                </View>
-            </View>
+    const xpPercentage = (MY_PROFILE.xpCurrent / MY_PROFILE.xpMax) * 100;
 
-            <ScrollView contentContainerStyle={styles.content}>
+    return (
+        <View style={styles.container}>
+            <StatusBar barStyle="light-content" />
+
+            {/* Background */}
+            <LinearGradient
+                colors={['#166534', '#14532d', '#064e3b']}
+                style={StyleSheet.absoluteFillObject}
+            />
+            <View style={styles.decorativeCircle} />
+
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled" // Agar klik hasil search tidak menutup keyboard duluan
+            >
+
+                {/* Header */}
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
+                        <Ionicons name="arrow-back" size={24} color="#FFF" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.iconButton}>
+                        <Ionicons name="settings-outline" size={24} color="#FFF" />
+                    </TouchableOpacity>
+                </View>
+
                 {/* Profile Section */}
                 <View style={styles.profileSection}>
-                    <View style={styles.avatarWrapper}>
-                        <Image source={MY_PROFILE.avatar} style={styles.avatar} contentFit="cover" />
-                        <Pressable style={styles.cameraButton}>
-                            <Ionicons name="camera" size={16} color="#fff" />
-                        </Pressable>
-                    </View>
-
-                    <View style={styles.likeContainer}>
-                        <View style={styles.likeIconBg}>
-                            <Ionicons name="heart" size={20} color="#FF5252" />
+                    <View style={styles.profileRow}>
+                        <View style={styles.avatarContainer}>
+                            <Image source={{ uri: MY_PROFILE.avatar }} style={styles.avatar} contentFit="cover" />
+                            <View style={styles.onlineIndicator} />
                         </View>
-                        <ThemedText style={styles.likeCount}>{MY_PROFILE.likes}</ThemedText>
-                    </View>
 
-                    <ThemedText style={styles.userName}>{MY_PROFILE.name}</ThemedText>
-
-                    <View style={styles.levelContainer}>
-                        <View style={styles.levelInfo}>
-                            <ThemedText style={styles.levelText}>Level {MY_PROFILE.level}</ThemedText>
-                            <ThemedText style={styles.xpText}>{MY_PROFILE.xp} Xp</ThemedText>
-                        </View>
-                        <View style={styles.progressBarBg}>
-                            <View style={[styles.progressBarFill, { width: '60%' }]} />
-                        </View>
-                    </View>
-                </View>
-
-                {/* Plants Grid */}
-                <View style={styles.plantsGrid}>
-                    {MY_PROFILE.plants.map((plant) => (
-                        <View key={plant.id} style={styles.plantCard}>
-                            <Image source={plant.image} style={styles.plantImage} contentFit="cover" />
-                            <View style={styles.plantNameOverlay}>
-                                <ThemedText style={styles.plantName}>{plant.name}</ThemedText>
+                        <View style={styles.profileInfo}>
+                            <ThemedText style={styles.userName}>{MY_PROFILE.name}</ThemedText>
+                            <View style={styles.badgesRow}>
+                                <View style={styles.levelBadge}>
+                                    <Ionicons name="ribbon" size={14} color="#FFD700" />
+                                    <ThemedText style={styles.levelText}>Lvl {MY_PROFILE.level}</ThemedText>
+                                </View>
+                                <View style={styles.likesBadge}>
+                                    <Ionicons name="heart" size={14} color="#F87171" />
+                                    <ThemedText style={styles.likesText}>{MY_PROFILE.likes}</ThemedText>
+                                </View>
                             </View>
                         </View>
-                    ))}
+                    </View>
+
+                    <View style={styles.xpContainer}>
+                        <View style={styles.xpLabelRow}>
+                            <ThemedText style={styles.xpLabel}>XP Progress</ThemedText>
+                            <ThemedText style={styles.xpValue}>{MY_PROFILE.xpCurrent} / {MY_PROFILE.xpMax}</ThemedText>
+                        </View>
+                        <View style={styles.xpTrack}>
+                            <LinearGradient
+                                colors={['#4ade80', '#22c55e']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={[styles.xpFill, { width: `${xpPercentage}%` }]}
+                            />
+                        </View>
+                    </View>
                 </View>
+
+                {/* --- SEARCH SECTION (Z-Index Tinggi agar overlay di atas grid) --- */}
+                <View style={[styles.searchSection, { zIndex: 100 }]}>
+                    <View style={styles.searchBar}>
+                        <Ionicons name="search" size={20} color="#9CA3AF" />
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Cari tanaman..."
+                            placeholderTextColor="#9CA3AF"
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            onFocus={() => setIsSearching(true)}
+                        // onBlur kita handle manual agar klik result tidak hilang
+                        />
+                        {searchQuery.length > 0 && (
+                            <TouchableOpacity onPress={() => { setSearchQuery(''); setIsSearching(false) }}>
+                                <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+
+                    {/* OVERLAY RESULT - Menempel Relatif pada SearchSection */}
+                    {isSearching && searchQuery.length > 0 && (
+                        <View style={styles.dropdownContainer}>
+                            <TouchableOpacity style={styles.resultItem}>
+                                <Image source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100' }} style={styles.resultAvatar} />
+                                <View>
+                                    <ThemedText style={styles.resultNameText}>Kebun {searchQuery}</ThemedText>
+                                    <ThemedText style={styles.resultSubText}>Level 12 • 4 Tanaman</ThemedText>
+                                </View>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.resultItem}>
+                                <Image source={{ uri: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100' }} style={styles.resultAvatar} />
+                                <View>
+                                    <ThemedText style={styles.resultNameText}>Taman {searchQuery} 2</ThemedText>
+                                    <ThemedText style={styles.resultSubText}>Level 25 • 8 Tanaman</ThemedText>
+                                </View>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                </View>
+
+                {/* --- GRID SECTION (Z-Index Rendah) --- */}
+                <View style={{ zIndex: 1, paddingHorizontal: PADDING_HORIZONTAL }}>
+                    <View style={styles.sectionTitleRow}>
+                        <ThemedText style={styles.sectionTitle}>Koleksi Tanaman</ThemedText>
+                        <TouchableOpacity>
+                            <ThemedText style={styles.seeAll}>Lihat Semua</ThemedText>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.plantsGrid}>
+                        {MY_PROFILE.plants.map((plant) => (
+                            <Pressable key={plant.id} style={styles.plantCard}>
+                                <Image
+                                    source={{ uri: plant.image }}
+                                    style={styles.plantImage}
+                                    contentFit="cover"
+                                    cachePolicy="memory-disk" // Caching agar tidak reload terus
+                                />
+
+                                <View style={styles.statusBadge}>
+                                    <ThemedText style={styles.statusText}>{plant.status}</ThemedText>
+                                </View>
+
+                                <LinearGradient
+                                    colors={['transparent', 'rgba(0,0,0,0.85)']}
+                                    style={styles.cardGradient}
+                                >
+                                    <ThemedText style={styles.plantName} numberOfLines={1}>{plant.name}</ThemedText>
+                                    <View style={styles.cardActionRow}>
+                                        <Ionicons name="water" size={14} color="#6EE7B7" />
+                                        <ThemedText style={styles.actionText}>Siram</ThemedText>
+                                    </View>
+                                </LinearGradient>
+                            </Pressable>
+                        ))}
+                    </View>
+                </View>
+
+                <View style={{ height: 100 }} />
             </ScrollView>
 
-            {/* Search Overlay */}
-            {isSearching && searchQuery.length > 0 && (
-                <View style={styles.searchResults}>
-                    <Pressable style={styles.searchResultItem} onPress={() => {
-                        setSearchQuery('Deva');
-                        setIsSearching(false);
-                    }}>
-                        <Image source={require('@/assets/images/homepage-1.png')} style={styles.resultAvatar} />
-                        <View>
-                            <ThemedText style={styles.resultName}>Deva</ThemedText>
-                            <ThemedText style={styles.resultLevel}>Level 19</ThemedText>
-                        </View>
-                    </Pressable>
-                    <Pressable style={styles.searchResultItem} onPress={() => {
-                        setSearchQuery('Fadil');
-                        setIsSearching(false);
-                    }}>
-                        <Image source={require('@/assets/images/homepage-1.png')} style={styles.resultAvatar} />
-                        <View>
-                            <ThemedText style={styles.resultName}>Fadil</ThemedText>
-                            <ThemedText style={styles.resultLevel}>Level 39</ThemedText>
-                        </View>
-                    </Pressable>
-                    <Pressable style={styles.searchResultItem} onPress={() => {
-                        setSearchQuery('Petrus');
-                        setIsSearching(false);
-                    }}>
-                        <Image source={require('@/assets/images/homepage-1.png')} style={styles.resultAvatar} />
-                        <View>
-                            <ThemedText style={styles.resultName}>Petrus</ThemedText>
-                            <ThemedText style={styles.resultLevel}>Level 79</ThemedText>
-                        </View>
-                    </Pressable>
-                </View>
-            )}
-        </ThemedView>
+            {/* FAB Camera */}
+            <TouchableOpacity style={styles.fab}>
+                <LinearGradient
+                    colors={['#4ade80', '#16a34a']}
+                    style={styles.fabGradient}
+                >
+                    <Ionicons name="scan" size={28} color="#FFF" />
+                </LinearGradient>
+            </TouchableOpacity>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#A5D6A7', // Light green background like in design
+        backgroundColor: '#064e3b',
+    },
+    decorativeCircle: {
+        position: 'absolute',
+        top: -100,
+        right: -100,
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+    },
+    scrollContent: {
+        paddingTop: Platform.OS === 'ios' ? 60 : 40,
+        paddingBottom: 40,
     },
     header: {
         flexDirection: 'row',
-        alignItems: 'center',
+        justifyContent: 'space-between',
         paddingHorizontal: 20,
-        paddingTop: 50,
-        paddingBottom: 20,
+        marginBottom: 20,
     },
-    backButton: {
-        marginRight: 15,
+    iconButton: {
         width: 40,
         height: 40,
-        backgroundColor: '#fff',
         borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.1)',
         alignItems: 'center',
         justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
     },
-    searchContainer: {
-        flex: 1,
+    // Profile
+    profileSection: {
+        marginHorizontal: 20,
+        padding: 20,
+        borderRadius: 24,
+        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        marginBottom: 24,
+    },
+    profileRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        paddingHorizontal: 15,
-        height: 45,
+        marginBottom: 20,
+    },
+    avatarContainer: {
+        position: 'relative',
+        marginRight: 16,
+    },
+    avatar: {
+        width: 70,
+        height: 70,
+        borderRadius: 35,
+        borderWidth: 2,
+        borderColor: '#4ade80',
+        backgroundColor: '#ccc', // Placeholder color saat loading
+    },
+    onlineIndicator: {
+        position: 'absolute',
+        bottom: 2,
+        right: 2,
+        width: 16,
+        height: 16,
+        backgroundColor: '#22c55e',
+        borderRadius: 8,
+        borderWidth: 2,
+        borderColor: '#064e3b',
+    },
+    profileInfo: { flex: 1 },
+    userName: { fontSize: 22, fontWeight: 'bold', color: '#FFF', marginBottom: 6 },
+    badgesRow: { flexDirection: 'row', gap: 8 },
+    levelBadge: {
+        flexDirection: 'row', alignItems: 'center',
+        backgroundColor: 'rgba(253, 224, 71, 0.2)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, gap: 4,
+    },
+    levelText: { color: '#FDE047', fontSize: 12, fontWeight: '700' },
+    likesBadge: {
+        flexDirection: 'row', alignItems: 'center',
+        backgroundColor: 'rgba(248, 113, 113, 0.2)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, gap: 4,
+    },
+    likesText: { color: '#FCA5A5', fontSize: 12, fontWeight: '700' },
+    xpContainer: { width: '100%' },
+    xpLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+    xpLabel: { color: '#D1FAE5', fontSize: 12 },
+    xpValue: { color: '#FFF', fontSize: 12, fontWeight: '600' },
+    xpTrack: { height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' },
+    xpFill: { height: '100%', borderRadius: 3 },
+
+    // --- Search Section Styles ---
+    searchSection: {
+        paddingHorizontal: 20,
+        marginBottom: 24,
+        position: 'relative', // Penting untuk absolute positioning dropdown
+    },
+    searchBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFF',
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        height: 50,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
     },
     searchInput: {
         flex: 1,
-        fontSize: 16,
-        color: '#333',
-    },
-    searchIcon: {
         marginLeft: 10,
+        fontSize: 15,
+        color: '#1F2937',
+        height: '100%', // Full height agar touch area besar
     },
-    content: {
-        paddingBottom: 40,
-    },
-    profileSection: {
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        marginBottom: 30,
-        position: 'relative',
-    },
-    avatarWrapper: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        borderWidth: 4,
-        borderColor: '#fff',
-        marginBottom: 15,
-        position: 'relative',
-    },
-    avatar: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 60,
-    },
-    cameraButton: {
+    dropdownContainer: {
         position: 'absolute',
-        bottom: 0,
-        right: 0,
-        backgroundColor: '#4CAF50',
-        width: 32,
-        height: 32,
+        top: 60, // 50 (tinggi input) + 10 (margin)
+        left: 20, // Sesuai paddingHorizontal parent
+        right: 20,
+        backgroundColor: '#FFF',
         borderRadius: 16,
+        padding: 8,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 10,
+        elevation: 10,
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+    },
+    resultItem: {
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 2,
-        borderColor: '#fff',
+        padding: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
     },
-    likeContainer: {
-        position: 'absolute',
-        right: 40,
-        top: 60,
-        alignItems: 'center',
+    resultAvatar: {
+        width: 40, height: 40, borderRadius: 20, marginRight: 12, backgroundColor: '#eee'
     },
-    likeIconBg: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#fff',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 4,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+    resultNameText: {
+        color: '#111827', fontWeight: 'bold', fontSize: 14,
     },
-    likeCount: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 12,
+    resultSubText: {
+        color: '#6B7280', fontSize: 12, marginTop: 2,
     },
-    userName: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#fff',
-        marginBottom: 15,
-    },
-    levelContainer: {
-        width: '100%',
-    },
-    levelInfo: {
+
+    // --- Grid Styles ---
+    sectionTitleRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 8,
+        alignItems: 'center',
+        marginBottom: 16,
     },
-    levelText: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
-    xpText: {
-        fontSize: 14,
-        color: '#E8F5E9',
-    },
-    progressBarBg: {
-        height: 8,
-        backgroundColor: 'rgba(255,255,255,0.3)',
-        borderRadius: 4,
-    },
-    progressBarFill: {
-        height: '100%',
-        backgroundColor: '#fff',
-        borderRadius: 4,
-    },
+    sectionTitle: { fontSize: 18, fontWeight: '700', color: '#FFF' },
+    seeAll: { color: '#4ade80', fontSize: 14 },
+
     plantsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        paddingHorizontal: 15,
-        gap: 15,
+        gap: GAP, // Menggunakan gap native Flexbox
     },
     plantCard: {
-        width: (width - 45) / 2,
-        aspectRatio: 1,
-        borderRadius: 12,
+        width: CARD_WIDTH,
+        height: CARD_WIDTH * 1.4, // Sedikit lebih tinggi agar proporsional
+        borderRadius: 20,
         overflow: 'hidden',
+        backgroundColor: '#1f2937',
         position: 'relative',
-        borderWidth: 4,
-        borderColor: '#81C784',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        elevation: 6,
     },
     plantImage: {
         width: '100%',
         height: '100%',
+        backgroundColor: '#2d3748', // Fallback color jika gambar loading
     },
-    plantNameOverlay: {
+    statusBadge: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        zIndex: 2,
+    },
+    statusText: { color: '#FFF', fontSize: 10, fontWeight: '600' },
+    cardGradient: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        padding: 8,
+        height: 90,
+        justifyContent: 'flex-end',
+        padding: 12,
     },
-    plantName: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 14,
-    },
-    searchResults: {
+    plantName: { color: '#FFF', fontWeight: 'bold', fontSize: 15, marginBottom: 4 },
+    cardActionRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    actionText: { color: '#6EE7B7', fontSize: 12, fontWeight: '600' },
+
+    // FAB
+    fab: {
         position: 'absolute',
-        top: 100,
-        left: 20,
-        right: 20,
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 5,
-        zIndex: 100,
+        bottom: 30,
+        alignSelf: 'center',
+        shadowColor: '#4ade80',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.4,
+        shadowRadius: 10,
+        elevation: 8,
     },
-    searchResultItem: {
-        flexDirection: 'row',
+    fabGradient: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
         alignItems: 'center',
-        padding: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
-    },
-    resultAvatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        marginRight: 12,
-    },
-    resultName: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#333',
-    },
-    resultLevel: {
-        fontSize: 12,
-        color: '#666',
+        justifyContent: 'center',
+        borderWidth: 4,
+        borderColor: 'rgba(255,255,255,0.2)',
     },
 });

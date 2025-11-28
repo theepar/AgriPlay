@@ -5,15 +5,26 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
+    ActivityIndicator,
     FlatList,
     KeyboardAvoidingView,
+    LayoutAnimation,
+    Modal,
     Platform,
-    Pressable,
     StyleSheet,
+    Text,
     TextInput,
-    View,
+    TouchableOpacity,
+    UIManager,
+    View
 } from 'react-native';
 
+// Aktifkan LayoutAnimation untuk Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+// --- Interfaces ---
 interface Message {
     id: string;
     text: string;
@@ -21,47 +32,120 @@ interface Message {
     timestamp: number;
 }
 
+interface ChatSession {
+    id: string;
+    title: string;
+    messages: Message[];
+    lastModified: number;
+}
+
 export default function ChatbotScreen() {
+    // State Utama
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
+
+    // State History/Sesi
+    const [sessions, setSessions] = useState<ChatSession[]>([]);
+    const [currentSessionId, setCurrentSessionId] = useState<string>(Date.now().toString());
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
+
     const flatListRef = useRef<FlatList>(null);
 
+    // Load sesi saat pertama kali buka
     useEffect(() => {
-        loadChatHistory();
+        loadSessions();
     }, []);
 
+    // Auto scroll saat ada pesan baru
     useEffect(() => {
         if (messages.length > 0) {
-            saveChatHistory(messages);
-            // Scroll to bottom when new message arrives
             setTimeout(() => {
                 flatListRef.current?.scrollToEnd({ animated: true });
             }, 100);
         }
+    }, [messages, isTyping]);
+
+    // Simpan sesi setiap kali pesan berubah
+    useEffect(() => {
+        if (messages.length > 0) {
+            saveCurrentSession();
+        }
     }, [messages]);
 
-    const loadChatHistory = async () => {
+    // --- Logic Storage ---
+
+    const loadSessions = async () => {
         try {
-            const history = await AsyncStorage.getItem('chat_history');
-            if (history) {
-                setMessages(JSON.parse(history));
+            const data = await AsyncStorage.getItem('chat_sessions');
+            if (data) {
+                const parsedSessions: ChatSession[] = JSON.parse(data);
+                setSessions(parsedSessions);
+                // Load sesi terakhir jika ada, atau buat baru
+                if (parsedSessions.length > 0) {
+                    // Opsional: Load sesi terakhir. Di sini saya pilih mulai fresh tapi history tersimpan
+                    // Jika ingin load terakhir: loadSession(parsedSessions[0]);
+                }
             }
         } catch (error) {
-            console.error('Failed to load chat history', error);
+            console.error('Error loading sessions', error);
         }
     };
 
-    const saveChatHistory = async (msgs: Message[]) => {
-        try {
-            await AsyncStorage.setItem('chat_history', JSON.stringify(msgs));
-        } catch (error) {
-            console.error('Failed to save chat history', error);
+    const saveCurrentSession = async () => {
+        const updatedSessions = [...sessions];
+        const index = updatedSessions.findIndex(s => s.id === currentSessionId);
+
+        // Ambil cuplikan teks untuk judul (maks 30 char)
+        const titleSnippet = messages[0]?.text.substring(0, 30) + (messages[0]?.text.length > 30 ? '...' : '') || 'Percakapan Baru';
+
+        const sessionData: ChatSession = {
+            id: currentSessionId,
+            title: titleSnippet,
+            messages: messages,
+            lastModified: Date.now(),
+        };
+
+        if (index >= 0) {
+            updatedSessions[index] = sessionData;
+        } else {
+            updatedSessions.unshift(sessionData); // Tambah ke paling atas
+        }
+
+        setSessions(updatedSessions);
+        await AsyncStorage.setItem('chat_sessions', JSON.stringify(updatedSessions));
+    };
+
+    const startNewChat = () => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setMessages([]);
+        setCurrentSessionId(Date.now().toString());
+        setShowHistoryModal(false);
+    };
+
+    const loadSession = (session: ChatSession) => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setMessages(session.messages);
+        setCurrentSessionId(session.id);
+        setShowHistoryModal(false);
+    };
+
+    const deleteSession = async (id: string) => {
+        const newSessions = sessions.filter(s => s.id !== id);
+        setSessions(newSessions);
+        await AsyncStorage.setItem('chat_sessions', JSON.stringify(newSessions));
+
+        if (currentSessionId === id) {
+            startNewChat();
         }
     };
+
+    // --- Logic Chat ---
 
     const handleSend = () => {
         if (inputText.trim() === '') return;
 
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         const newUserMessage: Message = {
             id: Date.now().toString(),
             text: inputText,
@@ -71,9 +155,11 @@ export default function ChatbotScreen() {
 
         setMessages((prev) => [...prev, newUserMessage]);
         setInputText('');
+        setIsTyping(true); // Mulai animasi typing
 
-        // Simulate AI Response
+        // Simulasi AI Response
         setTimeout(() => {
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
             const aiResponse: Message = {
                 id: (Date.now() + 1).toString(),
                 text: generateDummyResponse(newUserMessage.text),
@@ -81,64 +167,76 @@ export default function ChatbotScreen() {
                 timestamp: Date.now(),
             };
             setMessages((prev) => [...prev, aiResponse]);
-        }, 1000);
+            setIsTyping(false); // Stop animasi typing
+        }, 1500);
     };
 
     const generateDummyResponse = (input: string) => {
         const lowerInput = input.toLowerCase();
         if (lowerInput.includes('halo') || lowerInput.includes('hai')) {
-            return 'Halo! Ada yang bisa saya bantu mengenai tanamanmu hari ini?';
+            return 'Halo sobat tani! 🌱 Ada yang bisa saya bantu mengenai lahan atau tanamanmu hari ini?';
         } else if (lowerInput.includes('kentang')) {
-            return 'Kentang membutuhkan tanah yang gembur dan penyiraman yang cukup. Pastikan drainase pot bagus ya!';
-        } else if (lowerInput.includes('pupuk')) {
-            return 'Untuk fase pertumbuhan daun, gunakan pupuk tinggi Nitrogen. Saat berbuah, gunakan pupuk tinggi Kalium.';
+            return '🥔 Untuk kentang, pastikan tanah gembur dan pH sekitar 5.0-6.5. Hindari genangan air agar umbi tidak busuk.';
+        } else if (lowerInput.includes('hama')) {
+            return '🐛 Hama apa yang menyerang? Untuk pencegahan alami, bisa gunakan pestisida nabati dari daun mimba atau bawang putih.';
         } else {
-            return 'Maaf, saya masih belajar. Bisa jelaskan lebih detail pertanyaanmu tentang pertanian?';
+            return 'Hmm, menarik. Bisa jelaskan lebih detail? Saya dilatih khusus untuk pertanian, perkebunan, dan agroteknologi.';
         }
     };
+
+    // --- Render Components ---
 
     const renderMessage = ({ item }: { item: Message }) => (
         <View style={[
             styles.messageBubble,
             item.sender === 'user' ? styles.userBubble : styles.aiBubble
         ]}>
-            <ThemedText style={[
+            <Text style={[
                 styles.messageText,
                 item.sender === 'user' ? styles.userText : styles.aiText
             ]}>
                 {item.text}
-            </ThemedText>
+            </Text>
+            <Text style={[styles.timeText, item.sender === 'user' ? { color: '#A7F3D0' } : { color: '#9CA3AF' }]}>
+                {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </Text>
         </View>
     );
 
     return (
         <ThemedView style={styles.container}>
-            {/* Header */}
+            {/* Header Modern */}
             <View style={styles.header}>
-                <Pressable onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#000" />
-                </Pressable>
+                <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
+                    <Ionicons name="chevron-back" size={24} color="#1F2937" />
+                </TouchableOpacity>
 
                 <View style={styles.headerTitleContainer}>
-                    <ThemedText style={styles.headerTitleText}>agrarian</ThemedText>
-                    <Ionicons name="leaf" size={18} color="#4CAF50" style={{ marginHorizontal: 2 }} />
-                    <ThemedText style={[styles.headerTitleText, { color: '#FFD700' }]}>AI</ThemedText>
+                    <View style={styles.logoContainer}>
+                        <Ionicons name="leaf" size={16} color="#FFFFFF" />
+                    </View>
+                    <View>
+                        <ThemedText style={styles.headerTitle}>Agra<Text style={{ color: '#059669' }}>AI</Text></ThemedText>
+                        <Text style={styles.headerSubtitle}>Asisten Cerdas Tani</Text>
+                    </View>
                 </View>
 
-                <Pressable style={styles.historyButton}>
-                    <Ionicons name="chatbubble-ellipses-outline" size={24} color="#000" />
-                </Pressable>
+                <TouchableOpacity onPress={() => setShowHistoryModal(true)} style={styles.iconButton}>
+                    <Ionicons name="time-outline" size={24} color="#1F2937" />
+                </TouchableOpacity>
             </View>
 
             {/* Chat Area */}
             <View style={styles.chatContainer}>
                 {messages.length === 0 ? (
                     <View style={styles.emptyState}>
-                        <ThemedText style={styles.emptyStateTitle}>Ada yang bisa dibantu?</ThemedText>
-                        <View style={styles.emptyStateSubtitleContainer}>
-                            <ThemedText style={styles.emptyStateSubtitle}>Agri AI</ThemedText>
-                            <ThemedText style={[styles.emptyStateSubtitle, { color: '#000', fontWeight: 'bold' }]}> disini</ThemedText>
+                        <View style={styles.emptyIconBg}>
+                            <Ionicons name="chatbubbles-outline" size={40} color="#059669" />
                         </View>
+                        <ThemedText style={styles.emptyStateTitle}>Mulai Diskusi Baru</ThemedText>
+                        <Text style={styles.emptyStateSubtitle}>
+                            Tanyakan tentang pupuk, cuaca, atau hama tanaman.
+                        </Text>
                     </View>
                 ) : (
                     <FlatList
@@ -148,147 +246,319 @@ export default function ChatbotScreen() {
                         keyExtractor={(item) => item.id}
                         contentContainerStyle={styles.messageList}
                         showsVerticalScrollIndicator={false}
+                        ListFooterComponent={
+                            isTyping ? (
+                                <View style={[styles.messageBubble, styles.aiBubble, { width: 60 }]}>
+                                    <ActivityIndicator size="small" color="#059669" />
+                                </View>
+                            ) : null
+                        }
                     />
                 )}
             </View>
 
-            {/* Input Area */}
+            {/* Input Area Floating */}
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
             >
-                <View style={styles.inputContainer}>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Tanya Agra AI apa saja..."
-                        value={inputText}
-                        onChangeText={setInputText}
-                        placeholderTextColor="#999"
-                    />
-                    <Pressable
-                        style={[styles.sendButton, inputText.trim() === '' && styles.sendButtonDisabled]}
-                        onPress={handleSend}
-                        disabled={inputText.trim() === ''}
-                    >
-                        <Ionicons name="send" size={20} color={inputText.trim() === '' ? '#ccc' : '#4CAF50'} />
-                    </Pressable>
+                <View style={styles.inputWrapper}>
+                    <View style={styles.inputContainer}>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Ketik pertanyaanmu..."
+                            value={inputText}
+                            onChangeText={setInputText}
+                            placeholderTextColor="#9CA3AF"
+                            multiline
+                            maxLength={200}
+                        />
+                        <TouchableOpacity
+                            style={[styles.sendButton, inputText.trim() === '' && styles.sendButtonDisabled]}
+                            onPress={handleSend}
+                            disabled={inputText.trim() === ''}
+                        >
+                            <Ionicons name="arrow-up" size={20} color="#FFF" />
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </KeyboardAvoidingView>
+
+            {/* MODAL HISTORY */}
+            <Modal
+                visible={showHistoryModal}
+                animationType="slide"
+                presentationStyle="pageSheet" // iOS style
+                onRequestClose={() => setShowHistoryModal(false)}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalHeader}>
+                        <Text style={styles.modalTitle}>Riwayat Percakapan</Text>
+                        <TouchableOpacity onPress={() => setShowHistoryModal(false)}>
+                            <Ionicons name="close" size={24} color="#374151" />
+                        </TouchableOpacity>
+                    </View>
+
+                    <TouchableOpacity style={styles.newChatButton} onPress={startNewChat}>
+                        <Ionicons name="add-circle" size={20} color="#FFF" />
+                        <Text style={styles.newChatText}>Mulai Topik Baru</Text>
+                    </TouchableOpacity>
+
+                    <FlatList
+                        data={sessions}
+                        keyExtractor={item => item.id}
+                        contentContainerStyle={{ padding: 20 }}
+                        renderItem={({ item }) => (
+                            <TouchableOpacity
+                                style={[
+                                    styles.historyItem,
+                                    item.id === currentSessionId && styles.activeHistoryItem
+                                ]}
+                                onPress={() => loadSession(item)}
+                            >
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.historyTitle} numberOfLines={1}>{item.title}</Text>
+                                    <Text style={styles.historyDate}>
+                                        {new Date(item.lastModified).toLocaleDateString()} • {new Date(item.lastModified).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </Text>
+                                </View>
+                                <TouchableOpacity onPress={() => deleteSession(item.id)} style={{ padding: 5 }}>
+                                    <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                                </TouchableOpacity>
+                            </TouchableOpacity>
+                        )}
+                        ListEmptyComponent={
+                            <View style={{ marginTop: 50, alignItems: 'center' }}>
+                                <Text style={{ color: '#9CA3AF' }}>Belum ada riwayat percakapan</Text>
+                            </View>
+                        }
+                    />
+                </View>
+            </Modal>
+
         </ThemedView>
     );
 }
 
+// --- Styles Modern ---
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: '#F9FAFB', // Cool Gray 50 background
     },
+    // Header
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingTop: 50,
-        paddingBottom: 15,
+        paddingHorizontal: 16,
+        paddingTop: Platform.OS === 'ios' ? 60 : 40,
+        paddingBottom: 16,
+        backgroundColor: '#FFF',
         borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
+        borderBottomColor: '#F3F4F6',
+        zIndex: 10,
     },
-    backButton: {
-        padding: 5,
+    iconButton: {
+        padding: 8,
+        borderRadius: 12,
+        backgroundColor: '#F3F4F6',
     },
     headerTitleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 10,
     },
-    headerTitleText: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#4CAF50',
+    logoContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        backgroundColor: '#059669', // Emerald 600
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    historyButton: {
-        padding: 5,
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#111827',
+        lineHeight: 22,
     },
+    headerSubtitle: {
+        fontSize: 12,
+        color: '#6B7280',
+    },
+    // Chat Area
     chatContainer: {
         flex: 1,
-        backgroundColor: '#fff',
     },
     emptyState: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        padding: 20,
+        marginTop: -50,
+    },
+    emptyIconBg: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#ECFDF5', // Emerald 50
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 20,
     },
     emptyStateTitle: {
-        fontSize: 22,
-        fontWeight: '600',
-        color: '#000',
-        marginBottom: 10,
-    },
-    emptyStateSubtitleContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#1F2937',
+        marginBottom: 8,
     },
     emptyStateSubtitle: {
-        fontSize: 22,
-        color: '#fce4ec', // Very light pink/red as in image for "Agri AI" part? Actually image shows "Agri AI" in very light color
-        fontWeight: 'bold',
+        fontSize: 14,
+        color: '#6B7280',
+        textAlign: 'center',
+        lineHeight: 20,
+        maxWidth: '80%',
     },
     messageList: {
-        padding: 20,
-        paddingBottom: 40,
+        paddingHorizontal: 16,
+        paddingTop: 20,
+        paddingBottom: 20,
     },
     messageBubble: {
-        maxWidth: '80%',
-        padding: 12,
-        borderRadius: 16,
-        marginBottom: 10,
+        maxWidth: '85%',
+        padding: 14,
+        borderRadius: 20,
+        marginBottom: 12,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 2,
     },
     userBubble: {
-        backgroundColor: '#E8F5E9',
+        backgroundColor: '#059669', // Emerald 600
         alignSelf: 'flex-end',
         borderBottomRightRadius: 4,
     },
     aiBubble: {
-        backgroundColor: '#f5f5f5',
+        backgroundColor: '#FFFFFF',
         alignSelf: 'flex-start',
         borderBottomLeftRadius: 4,
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
     },
     messageText: {
         fontSize: 15,
         lineHeight: 22,
     },
     userText: {
-        color: '#2D5F3F',
+        color: '#FFFFFF',
     },
     aiText: {
-        color: '#333',
+        color: '#1F2937',
+    },
+    timeText: {
+        fontSize: 10,
+        marginTop: 4,
+        alignSelf: 'flex-end',
+    },
+    // Input Area
+    inputWrapper: {
+        backgroundColor: '#F9FAFB',
+        padding: 16,
+        paddingBottom: Platform.OS === 'ios' ? 30 : 16,
     },
     inputContainer: {
         flexDirection: 'row',
-        alignItems: 'center',
-        padding: 15,
-        borderTopWidth: 1,
-        borderTopColor: '#f0f0f0',
-        backgroundColor: '#fff',
+        alignItems: 'flex-end',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 24,
+        padding: 6,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
+        elevation: 3,
     },
     input: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
-        borderRadius: 24,
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
         paddingVertical: 12,
         fontSize: 15,
-        color: '#333',
-        marginRight: 10,
+        color: '#1F2937',
+        maxHeight: 100,
     },
     sendButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: '#f0f0f0',
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#059669',
         alignItems: 'center',
         justifyContent: 'center',
+        marginBottom: 2,
     },
     sendButtonDisabled: {
-        opacity: 0.7,
+        backgroundColor: '#D1D5DB',
     },
+    // Modal Styles
+    modalContainer: {
+        flex: 1,
+        backgroundColor: '#F9FAFB',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 20,
+        backgroundColor: '#FFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#111827',
+    },
+    newChatButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#059669',
+        margin: 20,
+        padding: 12,
+        borderRadius: 12,
+        gap: 8,
+    },
+    newChatText: {
+        color: '#FFF',
+        fontWeight: '600',
+        fontSize: 16,
+    },
+    historyItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFF',
+        padding: 16,
+        borderRadius: 12,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    activeHistoryItem: {
+        borderColor: '#059669',
+        backgroundColor: '#ECFDF5',
+    },
+    historyTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#1F2937',
+        marginBottom: 4,
+    },
+    historyDate: {
+        fontSize: 12,
+        color: '#6B7280',
+    }
 });
