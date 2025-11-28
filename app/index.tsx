@@ -1,108 +1,147 @@
 import { ThemedText } from '@/components/themed-text';
+import { PLANTS_DATA } from '@/constants/plants';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Dimensions,
     Platform,
     Pressable,
     ScrollView,
     StatusBar,
     StyleSheet,
-    View,
+    View
 } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
-// Data Baru dengan GAMBAR ASLI (Unsplash)
-const DUMMY_PLANTS = [
-    {
-        id: 1,
-        name: 'Kentang Granola',
-        startDate: '9 Okt 2025',
-        progress: 65,
-        reminder: true,
-        color: '#059669',
-        image: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?q=80&w=400&auto=format&fit=crop',
-    },
-    {
-        id: 2,
-        name: 'Tomat Cherry',
-        startDate: '15 Okt 2025',
-        progress: 45,
-        reminder: true,
-        color: '#EA580C',
-        image: 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?q=80&w=400&auto=format&fit=crop',
-    },
-    {
-        id: 3,
-        name: 'Cabai Rawit',
-        startDate: '20 Okt 2025',
-        progress: 30,
-        reminder: false,
-        color: '#DC2626',
-        image: 'https://images.unsplash.com/photo-1588252303782-cb80119abd6d?q=80&w=400&auto=format&fit=crop',
-    },
-];
+// Types untuk weather
+interface WeatherData {
+    temp: number;
+    description: string;
+    icon: string;
+    location: string;
+}
 
 export default function HomeScreen() {
-    const [myPlants, setMyPlants] = useState(DUMMY_PLANTS);
-    const [weather, setWeather] = useState({
-        temp: '--',
-        desc: 'Memuat cuaca...',
-        city: 'Mencari lokasi...',
-        icon: 'cloud-outline' as any
-    });
+    // Transform PLANTS_DATA to match home screen format (only first 3 plants)
+    const [myPlants] = useState(
+        PLANTS_DATA.slice(0, 3).map(plant => ({
+            id: parseInt(plant.id),
+            name: plant.name,
+            startDate: '9 Nov 2025', // You can make this dynamic too
+            progress: plant.progress,
+            reminder: plant.progress < 50, // Auto reminder if progress < 50%
+            color: plant.color,
+            image: plant.image,
+        }))
+    );
 
+    // Weather state
+    const [weather, setWeather] = useState<WeatherData>({
+        temp: 27,
+        description: 'Memuat...',
+        icon: 'partly-sunny',
+        location: 'Memuat lokasi...',
+    });
+    const [loadingWeather, setLoadingWeather] = useState(true);
+
+    // Fetch weather data
     useEffect(() => {
-        (async () => {
-            let { status } = await Location.requestForegroundPermissionsAsync();
+        fetchWeatherData();
+    }, []);
+
+    const fetchWeatherData = async () => {
+        try {
+            // 1. Get location permission
+            const { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') {
-                setWeather(prev => ({ ...prev, desc: 'Izin lokasi ditolak', city: '-' }));
+                setWeather(prev => ({
+                    ...prev,
+                    description: 'Cerah Berawan',
+                    location: 'Bandung',
+                }));
+                setLoadingWeather(false);
                 return;
             }
 
-            try {
-                let location = await Location.getCurrentPositionAsync({});
-                const { latitude, longitude } = location.coords;
+            // 2. Get current location
+            const location = await Location.getCurrentPositionAsync({});
+            const { latitude, longitude } = location.coords;
 
-                // Get City Name
-                let reverseGeocode = await Location.reverseGeocodeAsync({ latitude, longitude });
-                let city = reverseGeocode[0]?.city || reverseGeocode[0]?.district || reverseGeocode[0]?.subregion || 'Lokasi Saya';
+            // 3. Get location name
+            const address = await Location.reverseGeocodeAsync({ latitude, longitude });
+            const locationName = address[0]?.city || address[0]?.subregion || 'Lokasi Tidak Diketahui';
 
-                // Get Weather
-                const response = await fetch(
-                    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`
-                );
-                const data = await response.json();
-                const current = data.current_weather;
+            // 4. Fetch weather from OpenWeatherMap API (free tier)
+            const API_KEY = '1a2b3c4d5e6f7g8h9i0j'; // Ganti dengan API key Anda dari openweathermap.org
+            const weatherResponse = await fetch(
+                `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&lang=id&appid=${API_KEY}`
+            );
 
-                const { desc, icon } = getWeatherInfo(current.weathercode);
+            if (weatherResponse.ok) {
+                const weatherData = await weatherResponse.json();
+                const weatherMain = weatherData.weather[0]?.main || 'Clear';
+                const temp = Math.round(weatherData.main?.temp || 27);
+                
+                // Tentukan deskripsi cuaca dalam bahasa Indonesia
+                let weatherDescription = 'Cerah';
+                let iconName = 'sunny';
+                
+                if (weatherMain === 'Clear') {
+                    weatherDescription = 'Cerah';
+                    iconName = 'sunny';
+                } else if (weatherMain === 'Clouds') {
+                    weatherDescription = 'Mendung';
+                    iconName = 'cloudy';
+                } else if (weatherMain === 'Rain' || weatherMain === 'Drizzle') {
+                    weatherDescription = 'Hujan';
+                    iconName = 'rainy';
+                } else if (weatherMain === 'Thunderstorm') {
+                    weatherDescription = 'Hujan Petir';
+                    iconName = 'thunderstorm';
+                } else if (weatherMain === 'Snow') {
+                    weatherDescription = 'Bersalju';
+                    iconName = 'snow';
+                } else if (weatherMain === 'Mist' || weatherMain === 'Fog' || weatherMain === 'Haze') {
+                    weatherDescription = 'Berkabut';
+                    iconName = 'cloudy';
+                } else {
+                    weatherDescription = 'Berawan';
+                    iconName = 'partly-sunny';
+                }
 
                 setWeather({
-                    temp: `${Math.round(current.temperature)}°C`,
-                    desc: desc,
-                    city: city,
-                    icon: icon
+                    temp,
+                    description: weatherDescription,
+                    icon: iconName,
+                    location: locationName,
                 });
-            } catch (error) {
-                console.log('Weather Error:', error);
-                setWeather(prev => ({ ...prev, desc: 'Gagal memuat cuaca', temp: '--' }));
+            } else {
+                // Fallback if API fails
+                setWeather({
+                    temp: 27,
+                    description: 'Cerah Berawan',
+                    icon: 'partly-sunny',
+                    location: locationName,
+                });
             }
-        })();
-    }, []);
-
-    const getWeatherInfo = (code: number) => {
-        if (code === 0) return { desc: 'Cerah', icon: 'sunny' };
-        if (code >= 1 && code <= 3) return { desc: 'Berawan', icon: 'partly-sunny' };
-        if (code >= 45 && code <= 48) return { desc: 'Berkabut', icon: 'cloudy' };
-        if (code >= 51 && code <= 67) return { desc: 'Hujan Ringan', icon: 'rainy' };
-        if (code >= 80 && code <= 82) return { desc: 'Hujan Deras', icon: 'thunderstorm' };
-        if (code >= 95 && code <= 99) return { desc: 'Badai Petir', icon: 'thunderstorm' };
-        return { desc: 'Cerah', icon: 'sunny' };
+        } catch (error) {
+            console.log('Weather fetch error:', error);
+            setWeather({
+                temp: 27,
+                description: 'Cerah Berawan',
+                icon: 'partly-sunny',
+                location: 'Bandung',
+            });
+        } finally {
+            setLoadingWeather(false);
+        }
     };
 
     const handleLogout = async () => {
@@ -116,33 +155,61 @@ export default function HomeScreen() {
 
     return (
         <View style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
+            <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <View style={styles.fixedHeaderContainer}>
+                <LinearGradient
+                    colors={['#064E3B', '#059669', '#10B981']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.fixedHeaderBackground}
+                />
 
-                {/* 1. Header Section */}
-                <View style={styles.header}>
-                    <View>
-                        <ThemedText type="title" style={styles.greeting}>Halo, Petani! 👋</ThemedText>
-                        <ThemedText style={styles.subGreeting}>Mari cek kebunmu hari ini.</ThemedText>
+                {/* Dekorasi lingkaran transparan */}
+                <View style={styles.heroAccentCircle} />
+
+                <View style={styles.headerContentWrapper}>
+                    <View style={styles.header}>
+                        <View>
+                            <ThemedText style={styles.greeting}>Halo, Petani Muda! 🌱</ThemedText>
+                            <ThemedText style={styles.subGreeting}>Siap merawat tanamanmu hari ini?</ThemedText>
+                        </View>
+                        <Pressable style={styles.profileBtn} onPress={() => router.push('/profile')}>
+                            <Image
+                                source={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=400&auto=format&fit=crop' }}
+                                style={styles.profileImage}
+                                contentFit="cover"
+                            />
+                        </Pressable>
                     </View>
-                    <Pressable style={styles.profileBtn} onPress={() => router.push('/profile')}>
-                        <Ionicons name="person" size={20} color="#059669" />
-                    </Pressable>
-                </View>
 
-                {/* 2. Weather Widget */}
-                <View style={styles.weatherCard}>
-                    <View>
-                        <ThemedText style={styles.weatherTemp}>{weather.temp}</ThemedText>
-                        <ThemedText style={styles.weatherDesc}>{weather.desc} • {weather.city}</ThemedText>
+                    {/* 2. Weather Card (Sekarang di dalam fixed container) */}
+                    <View style={styles.weatherCard}>
+                        {loadingWeather ? (
+                            <ActivityIndicator size="large" color="#059669" />
+                        ) : (
+                            <>
+                                <View>
+                                    <ThemedText style={styles.weatherTemp}>{weather.temp}°</ThemedText>
+                                    <ThemedText style={styles.weatherDesc}>{weather.description} • {weather.location}</ThemedText>
+                                </View>
+                                <Ionicons name={weather.icon as any} size={56} color="#F59E0B" />
+                            </>
+                        )}
                     </View>
-                    <Ionicons name={weather.icon} size={48} color="#F59E0B" />
                 </View>
+            </View>
 
-                {/* 3. Active Plants Section (UPDATED) */}
-                <View style={styles.sectionHeader}>
-                    <ThemedText type="subtitle" style={styles.sectionTitle}>Kebun Saya</ThemedText>
+            {/* --- BAGIAN 2: SCROLLABLE CONTENT --- */}
+            <ScrollView 
+                style={styles.scrollContainer} 
+                contentContainerStyle={styles.scrollContent} 
+                showsVerticalScrollIndicator={false}
+            >
+                
+                {/* 3. Active Plants Section */}
+                <View style={[styles.sectionHeader, styles.containerPadding]}>
+                    <ThemedText style={styles.sectionTitle}>Kebun Saya</ThemedText>
                     <Pressable onPress={() => router.push('/virtual-garden')}>
                         <ThemedText style={styles.seeAll}>Lihat Semua</ThemedText>
                     </Pressable>
@@ -159,13 +226,12 @@ export default function HomeScreen() {
                             style={styles.plantCard}
                             onPress={() => handlePlantDetail(plant.id)}
                         >
-                            {/* Image Area */}
                             <View style={styles.imageWrapper}>
                                 <Image source={{ uri: plant.image }} style={styles.plantImage} contentFit="cover" />
-
-                                {/* Overlay Gradient (Optional for text legibility if needed, but here we use clean card) */}
-
-                                {/* Reminder Badge Overlay */}
+                                <LinearGradient
+                                    colors={['transparent', 'rgba(0,0,0,0.7)']}
+                                    style={styles.imageOverlay}
+                                />
                                 {plant.reminder && (
                                     <View style={styles.reminderBadge}>
                                         <Ionicons name="water" size={10} color="#fff" />
@@ -174,12 +240,9 @@ export default function HomeScreen() {
                                 )}
                             </View>
 
-                            {/* Info Area */}
                             <View style={styles.plantInfo}>
-                                <ThemedText type="defaultSemiBold" style={styles.plantName}>{plant.name}</ThemedText>
-                                <ThemedText style={styles.plantDate}>Mulai: {plant.startDate}</ThemedText>
-
-                                {/* Progress Bar */}
+                                <ThemedText style={styles.plantName}>{plant.name}</ThemedText>
+                                <ThemedText style={styles.plantDate}>{plant.startDate}</ThemedText>
                                 <View style={styles.progressContainer}>
                                     <View style={styles.progressTrack}>
                                         <View style={[styles.progressFill, { width: `${plant.progress}%`, backgroundColor: plant.color }]} />
@@ -192,40 +255,15 @@ export default function HomeScreen() {
                 </ScrollView>
 
                 {/* 4. Main Menu Grid */}
-                <ThemedText type="subtitle" style={[styles.sectionTitle, { marginTop: 24, marginBottom: 16 }]}>Fitur Utama</ThemedText>
+                <ThemedText style={[styles.sectionTitle, styles.containerPadding, { marginTop: 24, marginBottom: 16 }]}>Fitur Utama</ThemedText>
 
-                <View style={styles.menuGrid}>
-                    <MenuCard
-                        title="Rekomendasi"
-                        subtitle="Cek Tanaman"
-                        icon="leaf"
-                        color="#059669"
-                        onPress={() => router.push('/plant-recommendation')}
-                    />
-                    <MenuCard
-                        title="Misi Harian"
-                        subtitle="Dapat XP"
-                        icon="trophy"
-                        color="#DC2626"
-                        onPress={() => router.push('/missions')}
-                    />
-                    <MenuCard
-                        title="Virtual Garden"
-                        subtitle="Koleksi"
-                        icon="flower"
-                        color="#D97706"
-                        onPress={() => router.push('/virtual-garden')}
-                    />
-                    <MenuCard
-                        title="Agri AI"
-                        subtitle="Tanya Jawab"
-                        icon="chatbubbles"
-                        color="#2563EB"
-                        onPress={() => router.push('/chatbot')}
-                    />
+                <View style={[styles.menuGrid, styles.containerPadding]}>
+                    <MenuCard title="Rekomendasi" subtitle="Cek Tanaman" icon="leaf" color="#059669" onPress={() => router.push('/plant-recommendation')} />
+                    <MenuCard title="Misi Harian" subtitle="Dapat XP" icon="trophy" color="#DC2626" onPress={() => router.push('/missions')} />
+                    <MenuCard title="Virtual Garden" subtitle="Koleksi" icon="flower" color="#D97706" onPress={() => router.push('/virtual-garden')} />
+                    <MenuCard title="Agri AI" subtitle="Tanya Jawab" icon="chatbubbles" color="#2563EB" onPress={() => router.push('/chatbot')} />
                 </View>
 
-                {/* Debug Logout */}
                 <Pressable style={styles.logoutBtn} onPress={handleLogout}>
                     <ThemedText style={styles.logoutText}>Log Out (Dev)</ThemedText>
                 </Pressable>
@@ -243,7 +281,7 @@ const MenuCard = ({ title, subtitle, icon, color, onPress }: any) => (
             <Ionicons name={icon} size={28} color={color} />
         </View>
         <View>
-            <ThemedText type="defaultSemiBold" style={styles.menuTitle}>{title}</ThemedText>
+            <ThemedText style={styles.menuTitle}>{title}</ThemedText>
             <ThemedText style={styles.menuSubtitle}>{subtitle}</ThemedText>
         </View>
         <View style={styles.arrowBg}>
@@ -257,12 +295,43 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#F9FAFB',
     },
-    scrollContent: {
-        padding: 24,
-        paddingTop: Platform.OS === 'ios' ? 60 : 40,
+
+    // --- 1. FIXED HEADER STYLES ---
+    fixedHeaderContainer: {
+        // Tidak perlu height fix, biarkan konten yang menentukan tingginya
+        // Border radius hanya di bawah untuk efek curve
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+        overflow: 'hidden', // Penting agar gradient mengikuti border radius
+        
+        // Shadow agar terlihat melayang di atas scroll view
+        zIndex: 10,
+        backgroundColor: '#fff', // Fallback color
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 10,
+        paddingBottom: 24, // Memberi ruang di bawah weather card sebelum batas curve
+    },
+    fixedHeaderBackground: {
+        ...StyleSheet.absoluteFillObject, // Gradient memenuhi container fixed
+    },
+    headerContentWrapper: {
+        paddingTop: Platform.OS === 'ios' ? 60 : 50, // Mengatasi status bar
+        paddingHorizontal: 24,
+    },
+    heroAccentCircle: {
+        position: 'absolute',
+        top: -50,
+        right: -50,
+        width: 250,
+        height: 250,
+        borderRadius: 125,
+        backgroundColor: 'rgba(255,255,255,0.1)',
     },
 
-    // Header
+    // Header Text & Profile
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -272,50 +341,56 @@ const styles = StyleSheet.create({
     greeting: {
         fontSize: 24,
         fontWeight: '800',
-        color: '#111827',
+        color: '#FFFFFF',
+        textShadowColor: 'rgba(0,0,0,0.1)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
     },
     subGreeting: {
         fontSize: 14,
-        color: '#6B7280',
+        color: '#D1FAE5',
         marginTop: 4,
+        fontWeight: '500',
     },
     profileBtn: {
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: '#fff',
+        backgroundColor: 'rgba(255,255,255,0.2)',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: '#E5E7EB',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        borderColor: 'rgba(255,255,255,0.3)',
+        overflow: 'hidden',
+    },
+    profileImage: {
+        width: '100%',
+        height: '100%',
     },
 
-    // Weather Card
+    // Weather Card (Inside Fixed Area)
     weatherCard: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: '#fff',
-        padding: 20,
-        borderRadius: 20,
-        marginBottom: 32,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
+        backgroundColor: '#FFFFFF',
+        paddingVertical: 25,
+        paddingHorizontal: 20,
+        borderRadius: 24,
+        minHeight: 100, // Tambah min height agar tidak terpotong
+
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 5,
     },
     weatherTemp: {
-        fontSize: 32,
+        fontSize: 40, 
         fontWeight: '800',
         color: '#111827',
+        lineHeight: 48, // Tambah line height agar tidak terpotong
+        includeFontPadding: false, // Android: hilangkan padding tambahan
     },
     weatherDesc: {
         fontSize: 13,
@@ -324,7 +399,19 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
 
-    // Section
+    // --- 2. SCROLLABLE CONTENT STYLES ---
+    scrollContainer: {
+        flex: 1, 
+    },
+    scrollContent: {
+        paddingTop: 24,
+        paddingBottom: 24,
+    },
+    containerPadding: {
+        paddingHorizontal: 24,
+    },
+
+    // Section Titles
     sectionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -342,27 +429,27 @@ const styles = StyleSheet.create({
         color: '#059669',
     },
 
-    // ACTIVE PLANTS (Updated Styles)
+    // Plant Cards
     plantsScroll: {
         gap: 16,
-        paddingRight: 24,
+        paddingHorizontal: 24,
+        paddingBottom: 8,
     },
     plantCard: {
-        width: width * 0.7, // Lebar kartu
+        width: width * 0.6,
         backgroundColor: '#fff',
         borderRadius: 20,
-        marginRight: 16,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 3,
-        elevation: 1,
-        overflow: 'hidden', // Agar gambar tidak keluar radius
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
     },
     imageWrapper: {
-        height: 80, // Tinggi area gambar
+        height: 130,
         width: '100%',
         position: 'relative',
     },
@@ -370,25 +457,30 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
     },
+    imageOverlay: {
+        ...StyleSheet.absoluteFillObject,
+    },
     reminderBadge: {
         position: 'absolute',
         top: 10,
         right: 10,
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#EF4444',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
+        backgroundColor: 'rgba(16, 185, 129, 0.9)',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 20,
         gap: 4,
+        borderWidth: 1,
+        borderColor: '#ffffff50',
     },
     reminderText: {
         color: '#fff',
-        fontSize: 10,
-        fontWeight: 'bold',
+        fontSize: 12,
+        fontWeight: '600',
     },
     plantInfo: {
-        padding: 12,
+        padding: 16,
     },
     plantName: {
         fontSize: 16,
@@ -398,13 +490,13 @@ const styles = StyleSheet.create({
     },
     plantDate: {
         fontSize: 12,
-        color: '#6B7280',
-        marginBottom: 12,
+        color: '#9CA3AF',
+        marginBottom: 16,
     },
     progressContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: 12,
     },
     progressTrack: {
         flex: 1,
@@ -427,18 +519,23 @@ const styles = StyleSheet.create({
     menuGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 16,
+        justifyContent: 'space-between',
+        gap: 12,
     },
     menuCard: {
-        width: (width - 48 - 16) / 2,
+        width: (width - 48 - 12) / 2,
         backgroundColor: '#fff',
         borderRadius: 20,
-        padding: 16,
+        padding: 18,
+        minHeight: 130,
+        justifyContent: 'flex-start',
         borderWidth: 1,
-        borderColor: '#E5E7EB',
-        position: 'relative',
-        height: 140,
-        justifyContent: 'space-between',
+        borderColor: '#F3F4F6',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
     },
     menuIconBg: {
         width: 48,
@@ -446,25 +543,28 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 12,
+        marginBottom: 14,
     },
     menuTitle: {
         fontSize: 15,
         fontWeight: '700',
         color: '#111827',
-        marginBottom: 2,
+        marginBottom: 4,
+        lineHeight: 20,
     },
     menuSubtitle: {
         fontSize: 12,
-        color: '#9CA3AF',
+        color: '#6B7280',
+        fontWeight: '500',
+        lineHeight: 16,
     },
     arrowBg: {
         position: 'absolute',
-        top: 16,
-        right: 16,
+        top: 18,
+        right: 18,
+        opacity: 0.4,
     },
 
-    // Logout
     logoutBtn: {
         marginTop: 40,
         alignSelf: 'center',
@@ -472,6 +572,6 @@ const styles = StyleSheet.create({
     },
     logoutText: {
         fontSize: 13,
-        color: '#D1D5DB',
+        color: '#9CA3AF',
     },
 });

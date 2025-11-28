@@ -3,19 +3,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
-    Dimensions,
     KeyboardAvoidingView,
     Platform,
     Pressable,
     ScrollView,
     StatusBar,
     StyleSheet,
-    Text,
     TextInput,
     View
 } from 'react-native';
 
-const { width } = Dimensions.get('window');
+
 
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
@@ -51,8 +49,6 @@ export default function LoginScreen() {
                     {/* 1. Header & Logo */}
                     <View style={styles.headerSection}>
                         <View style={styles.logoContainer}>
-                            {/* Ganti dengan logo asli Anda */}
-                            {/* Jika tidak ada gambar, saya pakai Icon sementara */}
                             <View style={styles.logoPlaceholder}>
                                 <Ionicons name="leaf" size={40} color="#059669" />
                             </View>
@@ -108,7 +104,7 @@ export default function LoginScreen() {
                             style={styles.loginButton}
                             onPress={handleLogin}
                         >
-                            <Text style={styles.loginButtonText}>Masuk</Text>
+                            <ThemedText style={styles.loginButtonText}>Masuk</ThemedText>
                             <Ionicons name="arrow-forward" size={20} color="#fff" />
                         </Pressable>
                     </View>

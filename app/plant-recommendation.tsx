@@ -33,12 +33,23 @@ export default function PlantRecommendationScreen() {
     const [area, setArea] = useState('');
     const [sunCondition, setSunCondition] = useState<SunCondition>(null);
     const [loadingLocation, setLoadingLocation] = useState(false);
+    const [weather, setWeather] = useState<{ temp: string; desc: string } | null>(null);
     const [coordinates, setCoordinates] = useState({
         latitude: -7.0051,
         longitude: 107.6419
     });
 
     // --- LOGIC ---
+    const getWeatherInfo = (code: number) => {
+        if (code === 0) return 'Cerah';
+        if (code >= 1 && code <= 3) return 'Berawan';
+        if (code >= 45 && code <= 48) return 'Berkabut';
+        if (code >= 51 && code <= 67) return 'Hujan Ringan';
+        if (code >= 80 && code <= 82) return 'Hujan Deras';
+        if (code >= 95 && code <= 99) return 'Badai Petir';
+        return 'Cerah';
+    };
+
     const handleGetLocation = async () => {
         setLoadingLocation(true);
         try {
@@ -54,14 +65,28 @@ export default function PlantRecommendationScreen() {
 
             setCoordinates({ latitude, longitude });
 
+            // Get Address
             const address = await Location.reverseGeocodeAsync({ latitude, longitude });
             if (address[0]) {
                 const place = `${address[0].street || ''} ${address[0].city || ''}, ${address[0].region || ''}`;
                 setLocation(place.trim());
             }
+
+            // Get Weather
+            const response = await fetch(
+                `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`
+            );
+            const data = await response.json();
+            const current = data.current_weather;
+
+            setWeather({
+                temp: `${Math.round(current.temperature)}°C`,
+                desc: getWeatherInfo(current.weathercode)
+            });
+
         } catch (error) {
-            console.error('Error getting location:', error);
-            alert('Gagal mendapatkan lokasi');
+            console.error('Error getting location/weather:', error);
+            alert('Gagal mendapatkan data lokasi/cuaca');
         }
         setLoadingLocation(false);
     };
@@ -72,7 +97,15 @@ export default function PlantRecommendationScreen() {
         if (step === 3 && !sunCondition) return;
 
         if (step === 3) {
-            router.push('/plant-recommendations-result');
+            router.push({
+                pathname: '/plant-recommendations-result',
+                params: {
+                    location: location,
+                    experience: experience,
+                    sunCondition: sunCondition,
+                    area: area
+                }
+            });
         } else {
             setStep(step + 1);
         }
@@ -173,18 +206,17 @@ export default function PlantRecommendationScreen() {
                                         onChangeText={setLocation}
                                     />
                                 </View>
-                                <View style={styles.inputWrapper}>
-                                    <Ionicons name="resize-outline" size={20} color="#9CA3AF" style={{ marginRight: 10 }} />
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder="Luas lahan (m²)"
-                                        placeholderTextColor="#9CA3AF"
-                                        value={area}
-                                        onChangeText={setArea}
-                                        keyboardType="numeric"
-                                    />
-                                </View>
                             </View>
+
+                            {/* Weather Info Display */}
+                            {weather && (
+                                <View style={styles.weatherInfo}>
+                                    <Ionicons name="cloud-outline" size={20} color="#059669" />
+                                    <ThemedText style={styles.weatherText}>
+                                        Cuaca: {weather.desc}, {weather.temp}
+                                    </ThemedText>
+                                </View>
+                            )}
 
                             <View style={styles.mapCard}>
                                 <WebView
@@ -198,7 +230,7 @@ export default function PlantRecommendationScreen() {
                                         try {
                                             const data = JSON.parse(event.nativeEvent.data);
                                             setCoordinates({ latitude: data.latitude, longitude: data.longitude });
-                                        } catch (e) { }
+                                        } catch { }
                                     }}
                                 />
                                 <TouchableOpacity
@@ -265,7 +297,6 @@ export default function PlantRecommendationScreen() {
                     onPress={handleNext}
                     disabled={!isStepValid()}
                     variant="primary"
-                    icon={step !== 3 ? <Ionicons name="arrow-forward" size={20} color="#fff" /> : undefined}
                 />
             </View>
         </View>
@@ -423,6 +454,22 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         fontSize: 15,
         color: '#111827',
+    },
+
+    // Weather Info
+    weatherInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#ECFDF5',
+        padding: 12,
+        borderRadius: 12,
+        marginBottom: 16,
+        gap: 8,
+    },
+    weatherText: {
+        fontSize: 14,
+        color: '#059669',
+        fontWeight: '600',
     },
 
     // Map

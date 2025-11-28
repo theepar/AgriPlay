@@ -97,7 +97,7 @@ export default function OnboardingScreen() {
 
                     const backgroundColor = scrollX.interpolate({
                         inputRange,
-                        outputRange: ['#D1D5DB', '#059669', '#D1D5DB'], // Updated Colors
+                        outputRange: ['#D1D5DB', '#059669', '#D1D5DB'],
                         extrapolate: 'clamp',
                     });
 
@@ -125,7 +125,6 @@ export default function OnboardingScreen() {
                 {/* Image Area */}
                 <View style={styles.imageContainer}>
                     {item.isLogo ? (
-                        // Logo Slide Specific Style
                         <Image
                             source={item.image}
                             style={styles.logoImage}

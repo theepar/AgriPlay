@@ -3,19 +3,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
-    Dimensions,
     KeyboardAvoidingView,
     Platform,
     Pressable,
     ScrollView,
     StatusBar,
     StyleSheet,
-    Text,
     TextInput,
-    View,
+    View
 } from 'react-native';
 
-const { width } = Dimensions.get('window');
+
 
 export default function RegisterScreen() {
     const [username, setUsername] = useState('');
@@ -43,7 +41,6 @@ export default function RegisterScreen() {
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-            {/* Decorative Background Element (Inverted position from login) */}
             <View style={styles.decorativeCircle} />
 
             <KeyboardAvoidingView
@@ -147,7 +144,7 @@ export default function RegisterScreen() {
                             style={styles.registerButton}
                             onPress={handleRegister}
                         >
-                            <Text style={styles.registerButtonText}>Daftar Sekarang</Text>
+                            <ThemedText style={styles.registerButtonText}>Daftar Sekarang</ThemedText>
                             <Ionicons name="arrow-forward" size={20} color="#fff" />
                         </Pressable>
                     </View>

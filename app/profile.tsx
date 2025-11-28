@@ -1,4 +1,5 @@
 import { ThemedText } from '@/components/themed-text';
+import { PLANTS_DATA } from '@/constants/plants';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -15,10 +16,9 @@ import {
 
 const { width } = Dimensions.get('window');
 
-// --- KONFIGURASI GRID ---
 const PADDING_HORIZONTAL = 24;
 const GAP = 16;
-// Hitungan Pas 2 Kolom:
+
 const COLUMN_WIDTH = (width - (PADDING_HORIZONTAL * 2) - GAP) / 2;
 
 const USER_PROFILE = {
@@ -28,22 +28,22 @@ const USER_PROFILE = {
     level: 19,
     xpCurrent: 1984,
     xpMax: 2500,
-    stats: { plants: 42, likes: '20.5K', harvests: 156 },
+    stats: { plants: PLANTS_DATA.length, likes: '20.5K', harvests: 156 },
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=400&auto=format&fit=crop',
-    coverImage: 'https://images.unsplash.com/photo-1622383563227-044011358d20?q=80&w=800&auto=format&fit=crop', // Gambar kebun estetik
+    coverImage: 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?q=80&w=800&auto=format&fit=crop', // Gambar kebun estetik
     badges: [
         { id: 1, icon: 'water', color: '#3B82F6', bg: '#EFF6FF', name: 'Penyiram' },
         { id: 2, icon: 'leaf', color: '#10B981', bg: '#ECFDF5', name: 'Green Thumb' },
         { id: 3, icon: 'trophy', color: '#F59E0B', bg: '#FFFBEB', name: 'Juara' },
     ],
-    plants: [
-        { id: 1, name: 'Kentang', status: 'Siap Panen', image: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?q=80&w=400', progress: 100, color: '#10B981' },
-        { id: 2, name: 'Kacang Hijau', status: 'Berbunga', image: 'https://images.unsplash.com/photo-1567306301408-9b74779a11af?q=80&w=400', progress: 75, color: '#F59E0B' },
-        { id: 3, name: 'Vanilla', status: 'Butuh Air', image: 'https://images.unsplash.com/photo-1606900165780-1a74e09ba4d7?q=80&w=400', progress: 40, color: '#EF4444' },
-        { id: 4, name: 'Kayu Manis', status: 'Tumbuh', image: 'https://images.unsplash.com/photo-1549589379-91899e69c020?q=80&w=400', progress: 60, color: '#10B981' },
-        { id: 5, name: 'Terong', status: 'Berbuah', image: 'https://images.unsplash.com/photo-1623955938225-b873e27a6962?q=80&w=400', progress: 85, color: '#8B5CF6' },
-        { id: 6, name: 'Kemangi', status: 'Sehat', image: 'https://images.unsplash.com/photo-1612509833501-c8167f259691?q=80&w=400', progress: 90, color: '#10B981' },
-    ]
+    plants: PLANTS_DATA.map((plant, index) => ({
+        id: Number(plant.id),
+        name: plant.name,
+        status: ['Siap Panen', 'Berbunga', 'Butuh Air', 'Tumbuh', 'Bibit'][index] || 'Tumbuh',
+        image: plant.image,
+        progress: plant.progress,
+        color: plant.color
+    }))
 };
 
 export default function ProfileScreen() {
@@ -139,13 +139,16 @@ export default function ProfileScreen() {
                 <View style={styles.sectionContainer}>
                     <View style={styles.sectionHeader}>
                         <ThemedText type="subtitle" style={styles.sectionTitle}>Kebun Saya</ThemedText>
-                        <TouchableOpacity>
+                        <TouchableOpacity onPress={() => router.push('/virtual-garden')}>
                             <ThemedText style={styles.seeAll}>Lihat Semua</ThemedText>
                         </TouchableOpacity>
                     </View>
 
                     <View style={styles.grid}>
-                        {USER_PROFILE.plants.map((plant) => (
+                        {USER_PROFILE.plants
+                            .sort((a, b) => b.progress - a.progress)
+                            .slice(0, 2)
+                            .map((plant) => (
                             <Pressable
                                 key={plant.id}
                                 style={styles.plantCard}

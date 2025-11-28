@@ -1,13 +1,16 @@
 import { ThemedText } from '@/components/themed-text';
+import { PLANTS_DATA } from '@/constants/plants';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import {
+    Alert,
     Dimensions,
     Platform,
     Pressable,
     ScrollView,
+    Share,
     StatusBar,
     StyleSheet,
     TouchableOpacity,
@@ -21,81 +24,57 @@ const GAP = 16;
 const PADDING = 24;
 const COLUMN_WIDTH = (width - (PADDING * 2) - GAP) / 2;
 
-// --- DATA (Diperbarui dengan Gambar Realistis) ---
-const RECOMMENDED_PLANTS = [
-    {
-        id: 1,
-        name: 'Kangkung Hidroponik',
-        difficulty: 'Pemula',
-        growthTime: '25 Hari',
-        matchScore: 98,
-        description: 'Juara ketahanan! Tumbuh sangat cepat di iklim Bojongsoang dan tahan genangan air.',
-        image: 'https://images.unsplash.com/photo-1628169966858-5c4d6537eb64?auto=format&fit=crop&w=800&q=80',
-        color: '#059669', // Emerald
-    },
-    {
-        id: 2,
-        name: 'Cabai Rawit',
-        difficulty: 'Menengah',
-        growthTime: '90 Hari',
-        matchScore: 85,
-        description: 'Cocok untuk dataran rendah panas.',
-        image: 'https://images.unsplash.com/photo-1588252303782-cb80119abd6d?auto=format&fit=crop&w=400&q=80',
-        color: '#DC2626', // Red
-    },
-    {
-        id: 3,
-        name: 'Tomat Cherry',
-        difficulty: 'Menengah',
-        growthTime: '70 Hari',
-        matchScore: 82,
-        description: 'Butuh sinar matahari penuh.',
-        image: 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&fit=crop&w=400&q=80',
-        color: '#EA580C', // Orange
-    },
-    {
-        id: 4,
-        name: 'Sawi Hijau',
-        difficulty: 'Pemula',
-        growthTime: '30 Hari',
-        matchScore: 95,
-        description: 'Panen cepat, perawatan mudah.',
-        image: 'https://images.unsplash.com/photo-1627306359556-c30c8858f96e?auto=format&fit=crop&w=400&q=80',
-        color: '#65A30D', // Lime
-    },
-    {
-        id: 5,
-        name: 'Bayam Merah',
-        difficulty: 'Pemula',
-        growthTime: '25 Hari',
-        matchScore: 92,
-        description: 'Kaya zat besi, tumbuh cepat.',
-        image: 'https://images.unsplash.com/photo-1588874673890-a29241513e9a?auto=format&fit=crop&w=400&q=80', // Ilustrasi bayam
-        color: '#BE123C', // Rose
-    },
-    {
-        id: 6,
-        name: 'Terong Ungu',
-        difficulty: 'Menengah',
-        growthTime: '80 Hari',
-        matchScore: 78,
-        description: 'Butuh lahan agak luas.',
-        image: 'https://images.unsplash.com/photo-1623955938225-b873e27a6962?auto=format&fit=crop&w=400&q=80',
-        color: '#7E22CE', // Purple
-    },
-];
+const RECOMMENDED_PLANTS = PLANTS_DATA.map((plant, index) => ({
+    id: Number(plant.id),
+    name: plant.name,
+    difficulty: plant.difficulty,
+    growthTime: plant.growthTime,
+    matchScore: [98, 85, 82, 78, 92][index] || 80,
+    description: plant.description,
+    image: plant.image,
+    color: plant.color,
+}));
 
 export default function PlantRecommendationResultScreen() {
+    const params = useLocalSearchParams();
+    const location = (params.location as string) || 'Lokasi Tidak Diketahui';
+    const experience = (params.experience as string) || 'Pemula';
+    
     const heroPlant = RECOMMENDED_PLANTS[0];
     const otherPlants = RECOMMENDED_PLANTS.slice(1);
 
     const handlePlantSelect = (plantId: number) => {
-        // Navigasi ke detail
-        console.log("Selected:", plantId);
+        router.push({ pathname: '/plant-detail', params: { id: plantId.toString() } });
     };
 
-    const handleAddToGarden = (plantName: string) => {
-        console.log("Added to garden:", plantName);
+    const handleAddToGarden = (plantId: number) => {
+        router.push({ pathname: '/missions/[id]', params: { id: plantId.toString() } });
+    };
+
+    const handleShare = async () => {
+        try {
+            const shareMessage = `🌱 Rekomendasi Tanaman untuk Saya!\n\n` +
+                `✨ ${heroPlant.name} (${heroPlant.matchScore}% Match)\n` +
+                `⏱️ Waktu Tumbuh: ${heroPlant.growthTime}\n` +
+                `📊 Tingkat Kesulitan: ${heroPlant.difficulty}\n\n` +
+                `📝 ${heroPlant.description}\n\n` +
+                `Dapatkan rekomendasi tanaman kamu di AgriPlay! 🌿`;
+
+            const result = await Share.share({
+                message: shareMessage,
+                title: `Rekomendasi Tanaman: ${heroPlant.name}`,
+            });
+
+            if (result.action === Share.sharedAction) {
+                if (result.activityType) {
+                    console.log('Shared with activity type:', result.activityType);
+                } else {
+                    console.log('Shared successfully');
+                }
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Gagal membagikan rekomendasi');
+        }
     };
 
     return (
@@ -104,11 +83,11 @@ export default function PlantRecommendationResultScreen() {
 
             {/* HEADER */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+                <TouchableOpacity onPress={() => router.back()}>
                     <Ionicons name="arrow-back" size={24} color="#111827" />
                 </TouchableOpacity>
                 <ThemedText type="subtitle" style={styles.headerTitle}>Hasil Analisis</ThemedText>
-                <TouchableOpacity style={styles.iconBtn}>
+                <TouchableOpacity onPress={handleShare}>
                     <Ionicons name="share-social-outline" size={24} color="#111827" />
                 </TouchableOpacity>
             </View>
@@ -119,7 +98,7 @@ export default function PlantRecommendationResultScreen() {
                 <View style={styles.titleBlock}>
                     <ThemedText type="title" style={styles.titleMain}>Rekomendasi Utama</ThemedText>
                     <ThemedText style={styles.titleSub}>
-                        Berdasarkan iklim <ThemedText style={{ fontWeight: '700', color: '#059669' }}>Bojongsoang</ThemedText> & level <ThemedText style={{ fontWeight: '700', color: '#059669' }}>Pemula</ThemedText>.
+                        Berdasarkan iklim <ThemedText style={{ fontWeight: '700', color: '#059669' }}>{location}</ThemedText> & level <ThemedText style={{ fontWeight: '700', color: '#059669' }}>{experience.charAt(0).toUpperCase() + experience.slice(1)}</ThemedText>.
                     </ThemedText>
                 </View>
 
@@ -158,7 +137,7 @@ export default function PlantRecommendationResultScreen() {
                             </View>
                             <TouchableOpacity
                                 style={styles.addBtn}
-                                onPress={() => handleAddToGarden(heroPlant.name)}
+                                onPress={() => handleAddToGarden(heroPlant.id)}
                             >
                                 <Ionicons name="add" size={24} color="#FFF" />
                             </TouchableOpacity>
@@ -225,13 +204,11 @@ const styles = StyleSheet.create({
         paddingBottom: 16,
         backgroundColor: '#F9FAFB',
         zIndex: 10,
-    },
-    iconBtn: {
-        width: 40, height: 40,
-        alignItems: 'center', justifyContent: 'center',
-        borderRadius: 20,
-        backgroundColor: '#FFFFFF',
-        borderWidth: 1, borderColor: '#F3F4F6',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
     },
     headerTitle: {
         fontSize: 16, fontWeight: '700', color: '#111827',

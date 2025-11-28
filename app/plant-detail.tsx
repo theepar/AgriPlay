@@ -1,46 +1,36 @@
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
+import { PLANTS_DATA } from '@/constants/plants';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
-    Dimensions,
     Platform,
     Pressable,
     ScrollView,
     StatusBar,
     StyleSheet,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 
-const { width } = Dimensions.get('window');
 
-// --- DATA ---
-const PLANT_INFO = {
-    name: 'Kentang Granola',
-    latin: 'Solanum tuberosum',
-    image: 'https://images.unsplash.com/photo-1593105544559-ecb03bf76f8c?q=80&w=800&auto=format&fit=crop',
-    desc: 'Kentang Granola populer karena teksturnya yang tidak mudah hancur. Cocok untuk pemula.'
-};
-
-const INITIAL_TASKS = [
-    { id: 1, title: 'Analisis Bibit', completed: true, xp: 50 },
-    { id: 2, title: 'Siapkan Media Tanam', completed: false, xp: 100 },
-    { id: 3, title: 'Penyiraman Pertama', completed: false, xp: 75 },
-    { id: 4, title: 'Jadwal Pemupukan', completed: false, xp: 150 },
-];
 
 export default function PlantDetailScreen() {
-    const [tasks, setTasks] = useState(INITIAL_TASKS);
+    const { id } = useLocalSearchParams();
+    const plant = PLANTS_DATA.find(p => p.id === id) || PLANTS_DATA[0];
+
+    const [tasks, setTasks] = useState(
+        plant.tasks.map(t => ({ ...t, completed: t.status === 'completed' }))
+    );
 
     // Hitung Progress
     const completedCount = tasks.filter(t => t.completed).length;
     const progress = (completedCount / tasks.length) * 100;
 
-    const handleToggle = (id: number) => {
-        setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+    const handleToggle = (taskId: string) => {
+        setTasks(tasks.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t));
     };
 
     return (
@@ -62,7 +52,7 @@ export default function PlantDetailScreen() {
 
                 {/* 2. IMAGE CARD */}
                 <View style={styles.imageCard}>
-                    <Image source={{ uri: PLANT_INFO.image }} style={styles.plantImage} contentFit="cover" />
+                    <Image source={{ uri: plant.image }} style={styles.plantImage} contentFit="cover" />
                     <View style={styles.xpBadge}>
                         <Ionicons name="flash" size={14} color="#F59E0B" />
                         <ThemedText style={styles.xpText}>Level 1</ThemedText>
@@ -71,9 +61,9 @@ export default function PlantDetailScreen() {
 
                 {/* 3. TITLE & INFO */}
                 <View style={styles.infoSection}>
-                    <ThemedText type="title" style={styles.plantName}>{PLANT_INFO.name}</ThemedText>
-                    <ThemedText style={styles.plantLatin}>{PLANT_INFO.latin}</ThemedText>
-                    <ThemedText style={styles.description}>{PLANT_INFO.desc}</ThemedText>
+                    <ThemedText type="title" style={styles.plantName}>{plant.name}</ThemedText>
+                    <ThemedText style={styles.plantLatin}>{plant.latin}</ThemedText>
+                    <ThemedText style={styles.description}>{plant.description}</ThemedText>
                 </View>
 
                 {/* 4. SIMPLE PROGRESS */}
@@ -112,7 +102,7 @@ export default function PlantDetailScreen() {
             <View style={styles.footer}>
                 <ThemedButton
                     title="Mulai Berkebun"
-                    onPress={() => router.push({ pathname: '/missions/[id]', params: { id: '1' } })}
+                    onPress={() => router.push({ pathname: '/missions/[id]', params: { id: plant.id } })}
                     variant="primary"
                 />
             </View>

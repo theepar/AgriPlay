@@ -43,6 +43,10 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "permissions": [
+      "LOCATION",
+      "FOREGROUND_SERVICE"
+    ]
   }
 }

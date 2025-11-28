@@ -1,5 +1,6 @@
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
+import { PLANTS_DATA } from '@/constants/plants';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
@@ -8,40 +9,46 @@ import {
     ScrollView,
     StatusBar,
     StyleSheet,
-    Text,
     TouchableOpacity,
     View,
 } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
-// --- MOCK DATA ---
-const getTaskDetail = (id: string) => {
-    return {
-        id,
-        title: 'Persiapan Lahan',
-        category: 'Preparation',
-        status: 'active',
-        xp: 100,
-        duration: '30 Menit',
-        description: 'Langkah krusial pertama! Tanah yang gembur adalah kunci agar umbi kentang bisa membesar dengan maksimal tanpa hambatan.',
-        requirements: [
-            { id: 1, label: 'Sekop Kecil', icon: 'hammer' },
-            { id: 2, label: 'Sarung Tangan', icon: 'hand-left' },
-            { id: 3, label: 'Tanah Gembur', icon: 'cube' },
-            { id: 4, label: 'Pupuk Kandang', icon: 'leaf' },
-        ],
-        steps: [
-            { id: 1, title: 'Bersihkan Area', desc: 'Pastikan pot atau lahan bebas dari rumput liar dan batu kerikil yang mengganggu akar.' },
-            { id: 2, title: 'Campurkan Media', desc: 'Campur tanah dan pupuk kandang dengan perbandingan 2:1 hingga merata.' },
-            { id: 3, title: 'Cek Kelembaban', desc: 'Siram sedikit air. Tanah harus lembab (bisa dikepal) tapi tidak becek saat diperas.' },
-        ]
-    };
-};
-
 export default function TaskDetailScreen() {
     const { taskId } = useLocalSearchParams();
-    const task = getTaskDetail(typeof taskId === 'string' ? taskId : '1');
+
+    // Find the task across all plants
+    const foundTask = PLANTS_DATA.flatMap(p => p.tasks).find(t => t.id === taskId);
+
+    // Default/Fallback data if task not found or for missing fields
+    const task = foundTask ? {
+        ...foundTask,
+        category: 'Perawatan', // Default category
+        duration: '15-30 Menit', // Default duration
+        description: foundTask.desc, // Map desc to description
+        requirements: [
+            { id: 1, label: 'Sarung Tangan', icon: 'hand-left' },
+            { id: 2, label: 'Sekop Kecil', icon: 'hammer' },
+            { id: 3, label: 'Air', icon: 'water' },
+        ],
+        steps: [
+            { id: 1, title: 'Persiapan', desc: 'Siapkan semua alat dan bahan yang dibutuhkan.' },
+            { id: 2, title: 'Pelaksanaan', desc: foundTask.desc },
+            { id: 3, title: 'Penyelesaian', desc: 'Pastikan area kerja kembali bersih dan rapi.' },
+        ]
+    } : {
+        // Fallback if ID not found
+        id: '0',
+        title: 'Tugas Tidak Ditemukan',
+        category: '-',
+        status: 'locked',
+        xp: 0,
+        duration: '-',
+        description: 'Detail tugas tidak tersedia.',
+        requirements: [],
+        steps: []
+    };
 
     return (
         <View style={styles.container}>
@@ -91,7 +98,7 @@ export default function TaskDetailScreen() {
                 </View>
 
                 <View style={styles.reqGrid}>
-                    {task.requirements.map((req) => (
+                    {task.requirements.map((req: any) => (
                         <View key={req.id} style={styles.reqCard}>
                             <View style={styles.reqIconBg}>
                                 <Ionicons name={req.icon as any} size={20} color="#059669" />
@@ -113,14 +120,14 @@ export default function TaskDetailScreen() {
                     {/* Garis Vertikal Sambung */}
                     <View style={styles.connectorLine} />
 
-                    {task.steps.map((step, index) => {
+                    {task.steps.map((step: any, index: number) => {
                         const isLast = index === task.steps.length - 1;
                         return (
                             <View key={step.id} style={[styles.stepRow, isLast && { marginBottom: 0 }]}>
                                 {/* Left: Number Bubble */}
                                 <View style={styles.numberColumn}>
                                     <View style={styles.numberBubble}>
-                                        <Text style={styles.numberText}>{index + 1}</Text>
+                                        <ThemedText style={styles.numberText}>{index + 1}</ThemedText>
                                     </View>
                                 </View>
 

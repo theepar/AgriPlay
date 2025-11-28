@@ -1,45 +1,25 @@
 import { ThemedText } from '@/components/themed-text';
+import { PLANTS_DATA } from '@/constants/plants';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
-    Dimensions,
     Platform,
     ScrollView,
     StatusBar,
     StyleSheet,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 
-// --- HELPER DATA ---
-const getPlantDetails = (id: string) => {
-    return {
-        id,
-        name: 'Kentang Granola',
-        latin: 'Solanum tuberosum',
-        description: 'Kentang jenis ini sangat populer untuk keripik. Membutuhkan tanah gembur dan penyinaran matahari penuh. Masa panen sekitar 90-100 hari.',
-        image: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?q=80&w=800',
-        difficulty: 'Sedang',
-        totalXp: 1200,
-        progress: 35,
-        tasks: [
-            { id: 't1', title: 'Persiapan Lahan', xp: 100, status: 'completed', desc: 'Gemburkan tanah dan campur pupuk kandang.' },
-            { id: 't2', title: 'Pilih Bibit Unggul', xp: 150, status: 'completed', desc: 'Pastikan bibit memiliki mata tunas yang sehat.' },
-            { id: 't3', title: 'Penanaman Awal', xp: 200, status: 'active', desc: 'Tanam bibit sedalam 5-7 cm.' },
-            { id: 't4', title: 'Penyiraman Rutin', xp: 100, status: 'locked', desc: 'Siram pagi dan sore hari.' },
-            { id: 't5', title: 'Pupuk Susulan', xp: 300, status: 'locked', desc: 'Berikan NPK saat usia 3 minggu.' },
-            { id: 't6', title: 'Panen Raya', xp: 500, status: 'locked', desc: 'Gali umbi saat daun mulai menguning.' },
-        ]
-    };
-};
 
-const { width } = Dimensions.get('window');
 
 export default function MissionDetailScreen() {
     const { id } = useLocalSearchParams();
-    const plant = getPlantDetails(typeof id === 'string' ? id : '1');
+
+    const plantData = PLANTS_DATA.find(p => p.id === id);
+    const plant = plantData || PLANTS_DATA[0];
 
     if (!plant) return null;
 
@@ -47,7 +27,6 @@ export default function MissionDetailScreen() {
         <View style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-            {/* --- PARALLAX HEADER IMAGE --- */}
             <View style={styles.headerImageContainer}>
                 <Image source={{ uri: plant.image }} style={styles.headerImage} contentFit="cover" />
                 <LinearGradient

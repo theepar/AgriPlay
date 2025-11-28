@@ -1,6 +1,5 @@
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -50,14 +49,14 @@ export default function ChatbotScreen() {
     const [currentSessionId, setCurrentSessionId] = useState<string>(Date.now().toString());
     const [showHistoryModal, setShowHistoryModal] = useState(false);
 
-    const flatListRef = useRef<FlatList>(null);
+    const flatListRef = useRef<FlatList<Message>>(null);
 
     // --- Effects ---
     useEffect(() => {
         loadSessions();
     }, []);
 
-    // Auto scroll saat pesan bertambah
+    // Auto scroll & Save saat pesan bertambah
     useEffect(() => {
         if (messages.length > 0) {
             setTimeout(() => {
@@ -78,9 +77,10 @@ export default function ChatbotScreen() {
     };
 
     const saveCurrentSession = async () => {
-        const updatedSessions = [...sessions];
-        const index = updatedSessions.findIndex(s => s.id === currentSessionId);
-        const titleSnippet = messages[0]?.text.substring(0, 30) + (messages[0]?.text.length > 30 ? '...' : '') || 'Percakapan Baru';
+        const firstMsgText = messages[0]?.text || '';
+        const titleSnippet = firstMsgText.length > 0
+            ? (firstMsgText.substring(0, 30) + (firstMsgText.length > 30 ? '...' : ''))
+            : 'Percakapan Baru';
 
         const sessionData: ChatSession = {
             id: currentSessionId,
@@ -89,11 +89,19 @@ export default function ChatbotScreen() {
             lastModified: Date.now(),
         };
 
-        if (index >= 0) updatedSessions[index] = sessionData;
-        else updatedSessions.unshift(sessionData);
+        setSessions(prevSessions => {
+            const updatedSessions = [...prevSessions];
+            const index = updatedSessions.findIndex(s => s.id === currentSessionId);
 
-        setSessions(updatedSessions);
-        await AsyncStorage.setItem('chat_sessions', JSON.stringify(updatedSessions));
+            if (index >= 0) {
+                updatedSessions[index] = sessionData;
+            } else {
+                updatedSessions.unshift(sessionData);
+            }
+
+            AsyncStorage.setItem('chat_sessions', JSON.stringify(updatedSessions)).catch(err => console.error(err));
+            return updatedSessions;
+        });
     };
 
     const startNewChat = () => {
@@ -118,6 +126,14 @@ export default function ChatbotScreen() {
     };
 
     // --- Logic Send Message ---
+    const generateDummyResponse = (input: string) => {
+        const lowerInput = input.toLowerCase();
+        if (lowerInput.includes('halo') || lowerInput.includes('hai')) return 'Halo sobat tani! 🌱 Ada yang bisa saya bantu?';
+        if (lowerInput.includes('kentang')) return '🥔 Kentang butuh tanah gembur dan pH 5.0-6.5. Pastikan drainase lancar ya!';
+        if (lowerInput.includes('hama')) return '🐛 Untuk hama, coba gunakan pestisida nabati dari daun mimba atau bawang putih.';
+        return 'Saya dilatih khusus untuk pertanian. Bisa jelaskan lebih detail masalah tanamanmu?';
+    };
+
     const handleSend = () => {
         if (inputText.trim() === '') return;
 
@@ -146,18 +162,11 @@ export default function ChatbotScreen() {
         }, 1500);
     };
 
-    const generateDummyResponse = (input: string) => {
-        const lowerInput = input.toLowerCase();
-        if (lowerInput.includes('halo') || lowerInput.includes('hai')) return 'Halo sobat tani! 🌱 Ada yang bisa saya bantu?';
-        if (lowerInput.includes('kentang')) return '🥔 Kentang butuh tanah gembur dan pH 5.0-6.5.';
-        if (lowerInput.includes('hama')) return '🐛 Coba gunakan pestisida nabati dari daun mimba.';
-        return 'Saya dilatih khusus untuk pertanian. Bisa jelaskan lebih detail?';
-    };
-
-    // --- Render Items ---
     const renderMessage = ({ item }: { item: Message }) => (
         <View style={[styles.messageBubble, item.sender === 'user' ? styles.userBubble : styles.aiBubble]}>
-            <ThemedText style={[styles.messageText, item.sender === 'user' ? styles.userText : styles.aiText]}>{item.text}</ThemedText>
+            <ThemedText style={[styles.messageText, item.sender === 'user' ? styles.userText : styles.aiText]}>
+                {item.text}
+            </ThemedText>
             <ThemedText style={[styles.timeText, item.sender === 'user' ? { color: '#A7F3D0' } : { color: '#9CA3AF' }]}>
                 {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </ThemedText>
@@ -165,12 +174,11 @@ export default function ChatbotScreen() {
     );
 
     return (
-        <ThemedView style={styles.container}>
-
-            {/* 1. Header (Static - Tidak kena KeyboardAvoidingView) */}
+        <View style={styles.container}>
+            {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
-                    <Ionicons name="chevron-back" size={24} color="#1F2937" />
+                <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+                    <Ionicons name="arrow-back" size={24} color="#111827" />
                 </TouchableOpacity>
 
                 <View style={styles.headerTitleContainer}>
@@ -178,32 +186,34 @@ export default function ChatbotScreen() {
                         <Ionicons name="leaf" size={16} color="#FFFFFF" />
                     </View>
                     <View>
-                        <ThemedText style={styles.headerTitle}>Agra<ThemedText style={{ color: '#059669' }}>AI</ThemedText></ThemedText>
+                        <View style={{ flexDirection: 'row' }}>
+                            <ThemedText style={styles.headerTitle}>Agra</ThemedText>
+                            <ThemedText style={[styles.headerTitle, { color: '#059669' }]}>AI</ThemedText>
+                        </View>
                         <ThemedText style={styles.headerSubtitle}>Asisten Cerdas Tani</ThemedText>
                     </View>
                 </View>
 
-                <TouchableOpacity onPress={() => setShowHistoryModal(true)} style={styles.iconButton}>
+                <TouchableOpacity onPress={() => setShowHistoryModal(true)} style={styles.iconBtn}>
                     <Ionicons name="time-outline" size={24} color="#1F2937" />
                 </TouchableOpacity>
             </View>
 
-            {/* 2. KeyboardAvoidingView (Membungkus Chat List & Input) */}
+            {/* Keyboard Avoiding View */}
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
-                // Android: undefined (serahkan ke OS 'resize'), iOS: 'padding'
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             >
-                {/* 3. Chat List Container */}
+                {/* Chat List */}
                 <View style={styles.chatContainer}>
                     {messages.length === 0 ? (
                         <View style={styles.emptyState}>
                             <View style={styles.emptyIconBg}>
                                 <Ionicons name="chatbubbles-outline" size={40} color="#059669" />
                             </View>
-                            <ThemedText type="title" style={styles.emptyStateTitle}>Mulai Diskusi</ThemedText>
-                            <ThemedText style={styles.emptyStateSubtitle}>Tanyakan tentang pertanian...</ThemedText>
+                            <ThemedText type="subtitle" style={styles.emptyStateTitle}>Mulai Diskusi</ThemedText>
+                            <ThemedText style={styles.emptyStateSubtitle}>Tanyakan tentang bibit, pupuk, atau hama...</ThemedText>
                         </View>
                     ) : (
                         <FlatList
@@ -212,12 +222,11 @@ export default function ChatbotScreen() {
                             renderItem={renderMessage}
                             keyExtractor={(item) => item.id}
                             contentContainerStyle={styles.messageListContent}
-                            // Trigger scroll saat layout berubah (keyboard muncul)
                             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
                             onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
                             ListFooterComponent={
                                 isTyping ? (
-                                    <View style={[styles.messageBubble, styles.aiBubble, { width: 60 }]}>
+                                    <View style={[styles.messageBubble, styles.aiBubble, { width: 60, alignItems: 'center' }]}>
                                         <ActivityIndicator size="small" color="#059669" />
                                     </View>
                                 ) : null
@@ -226,7 +235,7 @@ export default function ChatbotScreen() {
                     )}
                 </View>
 
-                {/* 4. Input Wrapper (Didalam KAV) */}
+                {/* Input Wrapper - Static Padding Only */}
                 <View style={styles.inputWrapper}>
                     <View style={styles.inputContainer}>
                         <TextInput
@@ -259,7 +268,7 @@ export default function ChatbotScreen() {
                 <View style={styles.modalContainer}>
                     <View style={styles.modalHeader}>
                         <ThemedText type="subtitle" style={styles.modalTitle}>Riwayat Percakapan</ThemedText>
-                        <TouchableOpacity onPress={() => setShowHistoryModal(false)}>
+                        <TouchableOpacity onPress={() => setShowHistoryModal(false)} style={styles.closeBtn}>
                             <Ionicons name="close" size={24} color="#374151" />
                         </TouchableOpacity>
                     </View>
@@ -275,26 +284,35 @@ export default function ChatbotScreen() {
                     <FlatList
                         data={sessions}
                         keyExtractor={item => item.id}
-                        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
+                        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
                         renderItem={({ item }) => (
                             <TouchableOpacity
                                 style={[styles.historyItem, item.id === currentSessionId && styles.activeHistoryItem]}
                                 onPress={() => loadSession(item)}
                             >
                                 <View style={{ flex: 1 }}>
-                                    <ThemedText type="defaultSemiBold" style={styles.historyTitle} numberOfLines={1}>{item.title}</ThemedText>
-                                    <ThemedText style={styles.historyDate}>{new Date(item.lastModified).toLocaleDateString()}</ThemedText>
+                                    <ThemedText type="defaultSemiBold" style={styles.historyTitle} numberOfLines={1}>
+                                        {item.title}
+                                    </ThemedText>
+                                    <ThemedText style={styles.historyDate}>
+                                        {new Date(item.lastModified).toLocaleDateString()}
+                                    </ThemedText>
                                 </View>
-                                <TouchableOpacity onPress={() => deleteSession(item.id)} style={{ padding: 5 }}>
+                                <TouchableOpacity onPress={() => deleteSession(item.id)} style={{ padding: 8 }}>
                                     <Ionicons name="trash-outline" size={18} color="#EF4444" />
                                 </TouchableOpacity>
                             </TouchableOpacity>
                         )}
-                        ListEmptyComponent={<View style={{ marginTop: 50, alignItems: 'center' }}><ThemedText style={{ color: '#9CA3AF' }}>Belum ada riwayat</ThemedText></View>}
+                        ListEmptyComponent={
+                            <View style={{ marginTop: 50, alignItems: 'center' }}>
+                                <Ionicons name="file-tray-outline" size={48} color="#D1D5DB" />
+                                <ThemedText style={{ color: '#9CA3AF', marginTop: 10 }}>Belum ada riwayat</ThemedText>
+                            </View>
+                        }
                     />
                 </View>
             </Modal>
-        </ThemedView>
+        </View>
     );
 }
 
@@ -307,11 +325,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16, paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingBottom: 16,
         backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#F3F4F6', zIndex: 10
     },
-    iconButton: { padding: 8, borderRadius: 12, backgroundColor: '#F3F4F6' },
+    iconBtn: { padding: 8, borderRadius: 12, backgroundColor: '#F3F4F6' },
     headerTitleContainer: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    logoContainer: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#059669', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { fontSize: 18, fontWeight: '700', color: '#111827', lineHeight: 22 },
-    headerSubtitle: { fontSize: 12, color: '#6B7280' },
+    logoContainer: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#059669', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
+    headerSubtitle: { fontSize: 12, color: '#6B7280', marginTop: -2 },
 
     // Chat Layout
     chatContainer: { flex: 1 },
@@ -326,18 +344,18 @@ const styles = StyleSheet.create({
     // Bubbles
     messageBubble: { maxWidth: '85%', padding: 14, borderRadius: 20, marginBottom: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
     userBubble: { backgroundColor: '#059669', alignSelf: 'flex-end', borderBottomRightRadius: 4 },
-    aiBubble: { backgroundColor: '#FFFFFF', alignSelf: 'flex-start', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#F3F4F6' },
+    aiBubble: { backgroundColor: '#FFFFFF', alignSelf: 'flex-start', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#E5E7EB' },
     messageText: { fontSize: 15, lineHeight: 22 },
     userText: { color: '#FFFFFF' },
     aiText: { color: '#1F2937' },
     timeText: { fontSize: 10, marginTop: 4, alignSelf: 'flex-end' },
 
-    // Input Wrapper
+    // Input Wrapper - FIXED PADDING
     inputWrapper: {
         backgroundColor: '#F9FAFB',
-        padding: 16,
-        // Di Android (resize mode) paddingBottom tidak perlu logic aneh2
-        paddingBottom: Platform.OS === 'ios' ? 30 : 16,
+        paddingHorizontal: 16,
+        paddingTop: 12,
+        paddingBottom: Platform.OS === 'ios' ? 34 : 20,
     },
     inputContainer: {
         flexDirection: 'row', alignItems: 'flex-end', backgroundColor: '#FFFFFF',
@@ -352,8 +370,9 @@ const styles = StyleSheet.create({
     modalContainer: { flex: 1, backgroundColor: '#F9FAFB' },
     modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
     modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#111827' },
-    historyItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 16, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#E5E7EB' },
+    closeBtn: { padding: 4 },
+    historyItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 16, borderRadius: 16, marginBottom: 10, borderWidth: 1, borderColor: '#E5E7EB', shadowColor: "#000", shadowOpacity: 0.02, shadowOffset: { width: 0, height: 2 } },
     activeHistoryItem: { borderColor: '#059669', backgroundColor: '#ECFDF5' },
-    historyTitle: { fontSize: 16, fontWeight: '600', color: '#1F2937', marginBottom: 4 },
-    historyDate: { fontSize: 12, color: '#6B7280' }
+    historyTitle: { fontSize: 15, fontWeight: '600', color: '#1F2937', marginBottom: 4 },
+    historyDate: { fontSize: 12, color: '#9CA3AF' }
 });

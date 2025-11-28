@@ -4,23 +4,63 @@ AgriPlay adalah aplikasi mobile berbasis AI dan Machine Learning yang dirancang 
 
 ## ✨ Fitur Utama
 
-- **🤖 AgriAI Assistant**: Asisten cerdas untuk menjawab pertanyaan seputar pertanian.
-- **🌿 Rekomendasi Tanaman**: Dapatkan rekomendasi tanaman terbaik berdasarkan lokasi, pengalaman, dan kondisi lahan Anda.
-- **📅 Smart Schedule & Reminder**: Pengingat otomatis untuk menyiram, memupuk, dan merawat tanaman.
-- **🎮 Gamification**: Sistem level dan XP (seperti Duolingo) untuk membuat belajar bertani lebih menyenangkan.
-- **🏡 Virtual Garden**: Simulasikan kebun impian Anda sebelum mulai menanam.
-- **👥 Komunitas Petani**: Terhubung dengan petani lain untuk berbagi tips dan pengalaman.
+### 🏠 Home Dashboard
+- **Weather Widget**: Menampilkan informasi cuaca real-time untuk lokasi Anda
+- **My Garden Overview**: Lihat semua tanaman aktif dengan progress tracking
+- **Quick Access Menu**: Akses cepat ke semua fitur utama
+
+### 🤖 AgriAI Chatbot
+- **AI Assistant 24/7**: Tanya jawab seputar pertanian, hama, pupuk, dan perawatan
+- **Chat History**: Simpan riwayat percakapan untuk referensi nanti
+- **Smart Responses**: Mendapat jawaban cerdas berdasarkan konteks pertanyaan
+
+### 🌿 Plant Recommendation System
+- **Wizard-based Flow**: Step-by-step guidance untuk pilih tanaman terbaik
+- **Location-based**: Rekomendasi berdasarkan lokasi, cuaca, dan kondisi lahan
+- **Experience Level**: Disesuaikan dengan tingkat pengalaman Anda (Pemula/Menengah/Ahli)
+
+### 🎯 Mission System (Daily Tasks)
+- **Daily Missions**: Task harian untuk merawat tanaman (siram, pupuk, cek hama)
+- **Streak System**: Bonus XP untuk konsistensi merawat tanaman
+- **Progress Tracking**: Lihat perkembangan tanaman dari hari ke hari
+- **Gamification**: Sistem level dan XP untuk motivasi lebih
+
+### 🏡 Virtual Garden
+- **My Garden View**: Kelola semua tanaman Anda di satu tempat
+- **Explore Gardens**: Lihat kebun virtual petani lain untuk inspirasi
+- **Plant Cards**: Info lengkap setiap tanaman dengan visual menarik
+
+### 👤 User Profile
+- **Achievement System**: Koleksi badge dan pencapaian
+- **Statistics**: Total tanaman, streak, level, dan XP
+- **Account Management**: Kelola profil dan preferensi
 
 ## 🛠️ Tech Stack
 
 - **Framework**: [React Native](https://reactnative.dev/) with [Expo](https://expo.dev/)
-- **Routing**: [Expo Router](https://docs.expo.dev/router/introduction/)
-- **Styling**: StyleSheet (Vanilla CSS-in-JS)
-- **Icons**: Ionicons (@expo/vector-icons)
-- **Storage**: AsyncStorage
+- **Router**: [Expo Router](https://docs.expo.dev/router/introduction/) (File-based routing)
+- **TypeScript**: Type-safe development
+- **Styling**: 
+  - StyleSheet (Vanilla CSS-in-JS)
+  - Themed Components (ThemedText, ThemedButton, ThemedView)
+- **UI/UX**: 
+  - Ionicons (@expo/vector-icons)
+  - Expo Image (Optimized image loading)
+  - Custom animations (LayoutAnimation)
+- **Storage**: AsyncStorage (Local data persistence)
 - **Maps/Location**: Expo Location
+- **WebView**: React Native WebView (untuk ML integration)
 
 ## 🚀 Cara Menjalankan Aplikasi
+
+### Prerequisites
+- Node.js (v16 atau lebih baru)
+- npm atau yarn
+- Expo CLI
+- Android Studio / Xcode (untuk emulator)
+- Expo Go app (untuk testing di device fisik)
+
+### Installation Steps
 
 1. **Clone Repository** (jika ada) atau download source code.
 
@@ -34,34 +74,93 @@ AgriPlay adalah aplikasi mobile berbasis AI dan Machine Learning yang dirancang 
    npx expo start
    ```
 
-4. **Scan QR Code**:
-   - Gunakan aplikasi **Expo Go** di Android/iOS untuk scan QR code yang muncul di terminal.
-   - Atau tekan `a` untuk membuka di Android Emulator.
-   - Atau tekan `i` untuk membuka di iOS Simulator.
+4. **Pilih Platform**:
+   - Scan QR Code dengan **Expo Go** di Android/iOS
+   - Tekan `a` untuk Android Emulator
+   - Tekan `i` untuk iOS Simulator
+   - Tekan `w` untuk Web Browser (limited features)
 
 ## 📱 Struktur Folder
 
 ```
 AgriPlay/
-├── app/                    # Source code utama (Expo Router)
-│   ├── (tabs)/             # Tab navigation (jika ada)
-│   ├── _layout.tsx         # Root layout & navigation setup
-│   ├── index.tsx           # Homepage
-│   ├── login.tsx           # Login screen
-│   ├── register.tsx        # Register screen
-│   ├── onboarding.tsx      # Onboarding flow
-│   ├── plant-detail.tsx    # Halaman detail tanaman & tasks
-│   ├── plant-recommendation.tsx # Wizard rekomendasi tanaman
+├── app/                          # Source code utama (Expo Router)
+│   ├── _layout.tsx               # Root layout & navigation
+│   ├── index.tsx                 # Home screen (Dashboard)
+│   ├── onboarding.tsx            # Onboarding flow (3 slides)
+│   ├── login.tsx                 # Login screen
+│   ├── register.tsx              # Register screen
+│   ├── profile.tsx               # User profile & achievements
+│   ├── chatbot.tsx               # AI Chatbot with history
+│   ├── plant-recommendation.tsx  # ML-based plant recommendation
+│   ├── plant-detail.tsx          # Plant detail page
+│   ├── virtual-garden.tsx        # Virtual garden (My Garden + Explore)
+│   ├── missions/
+│   │   ├── index.tsx             # Mission list (Daily tasks)
+│   │   ├── [id].tsx              # Mission detail page
+│   │   └── task/
+│   │       └── [taskId].tsx      # Individual task detail
 │   └── ...
-├── assets/                 # Gambar, font, dan icon
-├── components/             # Reusable components
-└── ...
+├── assets/                       # Images, fonts, and icons
+│   ├── images/
+│   └── fonts/
+├── components/                   # Reusable components
+│   ├── themed-text.tsx           # Themed text component
+│   ├── themed-button.tsx         # Themed button component
+│   ├── themed-view.tsx           # Themed view component
+│   └── parallax-scroll-view.tsx  # Parallax scrolling effect
+├── constants/                    # App constants & theme
+│   └── Colors.ts                 # Color palette
+└── scripts/                      # Build & automation scripts
 ```
 
-## 📝 Catatan Pengembangan
+## 🎨 Design System
 
-- **Reset Onboarding**: Di Homepage terdapat tombol "Reset (Dev Only)" untuk mereset status onboarding agar bisa testing flow dari awal.
-- **Dummy Data**: Saat ini aplikasi menggunakan dummy data untuk demonstrasi fitur.
+### Themed Components
+Aplikasi menggunakan **Themed Components** untuk konsistensi UI:
+- `<ThemedText>` - Text dengan auto theming (light/dark mode ready)
+- `<ThemedButton>` - Button dengan variant system
+- `<ThemedView>` - View container dengan themed background
 
----
+### Color Palette
+- **Primary**: `#059669` (Green - Agriculture theme)
+- **Secondary**: `#10B981` (Light Green)
+- **Accent**: `#F59E0B` (Orange/Yellow)
+- **Text**: `#111827` (Dark Gray)
+- **Background**: `#F9FAFB` (Light Gray)
 
+### Typography & Spacing
+- Consistent spacing (8px grid system)
+- Modern font weights (400, 600, 700, 800)
+- Responsive sizing
+
+## 📝 Fitur Mendatang
+
+- [ ] **Backend Integration**: Connect to real API
+- [ ] **Real ML Model**: Integrasi dengan model ML untuk rekomendasi tanaman
+- [ ] **Push Notifications**: Reminder untuk watering & tasks
+- [ ] **Social Features**: Forum komunitas & share achievements
+- [ ] **Weather API**: Real-time weather dari OpenWeatherMap
+- [ ] **Marketplace**: Beli bibit, pupuk, dan tools
+- [ ] **AR Plant Preview**: Lihat tanaman di ruang nyata (AR)
+
+## 🐛 Debugging & Development
+
+### Reset Development Data
+- **Reset Onboarding**: Tekan tombol "Log Out (Dev)" di Home untuk reset
+- **Clear AsyncStorage**: 
+  ```bash
+  npx expo start --clear
+  ```
+
+### Common Issues
+1. **Metro bundler error**: Hapus cache dengan `npx expo start -c`
+2. **Module not found**: Jalankan `npm install` lagi
+3. **Android build failed**: Pastikan ANDROID_HOME sudah di-set
+
+## 📄 License
+
+Aplikasi ini dibuat untuk tujuan edukasi dan demonstrasi.
+
+Versi: 1.0.0 (Beta)  
+Last Updated: November 2025

@@ -1,4 +1,5 @@
 import { ThemedText } from '@/components/themed-text';
+import { PLANTS_DATA } from '@/constants/plants';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -25,12 +26,13 @@ const COLUMN_WIDTH = (width - (PADDING_HORIZONTAL * 2) - GAP) / 2;
 // --- DATA: MY PLANTS ---
 const MY_PROFILE = {
     name: 'Agri Master',
-    plants: [
-        { id: 1, name: 'Kentang Granola', status: 'Siap Panen', color: '#059669', image: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=500&q=80' },
-        { id: 2, name: 'Kacang Hijau', status: 'Berbunga', color: '#F59E0B', image: 'https://images.unsplash.com/photo-1567306301408-9b74779a11af?auto=format&fit=crop&w=500&q=80' },
-        { id: 3, name: 'Vanilla', status: 'Butuh Air', color: '#EF4444', image: 'https://images.unsplash.com/photo-1606900165780-1a74e09ba4d7?auto=format&fit=crop&w=500&q=80' },
-        { id: 4, name: 'Kayu Manis', status: 'Tumbuh', color: '#3B82F6', image: 'https://images.unsplash.com/photo-1549589379-91899e69c020?auto=format&fit=crop&w=500&q=80' },
-    ]
+    plants: PLANTS_DATA.map((plant, index) => ({
+        id: Number(plant.id),
+        name: plant.name,
+        status: ['Siap Panen', 'Berbunga', 'Butuh Air', 'Tumbuh', 'Bibit'][index] || 'Tumbuh',
+        color: plant.color,
+        image: plant.image
+    }))
 };
 
 // --- DATA: OTHER GARDENS (COMMUNITY) ---
@@ -145,6 +147,10 @@ function MyGardenView({ searchQuery }: { searchQuery: string }) {
         p.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const handlePlantPress = (plantId: number) => {
+        router.push({ pathname: '/plant-detail', params: { id: plantId.toString() } });
+    };
+
     return (
         <View style={styles.gridContainer}>
             <View style={styles.sectionHeader}>
@@ -153,7 +159,7 @@ function MyGardenView({ searchQuery }: { searchQuery: string }) {
 
             <View style={styles.grid}>
                 {filteredPlants.map((plant) => (
-                    <Pressable key={plant.id} style={styles.plantCard}>
+                    <Pressable key={plant.id} style={styles.plantCard} onPress={() => handlePlantPress(plant.id)}>
                         <View style={styles.plantImageWrapper}>
                             <Image source={{ uri: plant.image }} style={styles.plantImage} contentFit="cover" />
                             <View style={[styles.statusBadge, { backgroundColor: plant.color }]}>
@@ -162,7 +168,7 @@ function MyGardenView({ searchQuery }: { searchQuery: string }) {
                         </View>
                         <View style={styles.plantCardContent}>
                             <ThemedText type="defaultSemiBold" style={styles.plantName}>{plant.name}</ThemedText>
-                            <TouchableOpacity style={styles.plantActionBtn}>
+                            <TouchableOpacity style={styles.plantActionBtn} onPress={() => handlePlantPress(plant.id)}>
                                 <ThemedText style={styles.plantActionText}>Detail</ThemedText>
                             </TouchableOpacity>
                         </View>
@@ -327,6 +333,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#E5E7EB',
         marginBottom: 16,
+        elevation: 1,
     },
     plantImageWrapper: { height: 120, position: 'relative' },
     plantImage: { width: '100%', height: '100%' },
@@ -340,48 +347,44 @@ const styles = StyleSheet.create({
     plantActionBtn: {
         backgroundColor: '#ECFDF5', paddingVertical: 6, alignItems: 'center', borderRadius: 8,
     },
-    plantActionText: { color: '#059669', fontSize: 12, fontWeight: '600' },
+    plantActionText: { fontSize: 12, fontWeight: '600', color: '#059669' },
 
     // --- EXPLORE STYLES ---
     listContainer: { paddingHorizontal: PADDING_HORIZONTAL },
     list: { gap: 16 },
     gardenCard: {
         backgroundColor: '#FFF',
-        borderRadius: 20,
+        borderRadius: 16,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: '#E5E7EB',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
+        marginBottom: 16,
+        elevation: 1,
     },
-    gardenCoverWrapper: { height: 150, position: 'relative' },
+    gardenCoverWrapper: { height: 140, position: 'relative' },
     gardenCover: { width: '100%', height: '100%' },
     gardenOverlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.1)',
+        backgroundColor: 'rgba(0,0,0,0.2)',
     },
     gardenStats: {
-        position: 'absolute', top: 12, right: 12,
-        flexDirection: 'row', alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, gap: 4
+        position: 'absolute', bottom: 12, left: 12,
+        flexDirection: 'row', alignItems: 'center', gap: 4,
+        backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
     },
     gardenStatsText: { color: '#FFF', fontSize: 12, fontWeight: '600' },
 
     gardenInfo: { padding: 16 },
     gardenOwnerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    ownerAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F3F4F6' },
-    gardenName: { fontSize: 16, fontWeight: '800', color: '#111827' },
-    ownerName: { fontSize: 13, color: '#6B7280', marginTop: 2 },
+    ownerAvatar: { width: 40, height: 40, borderRadius: 20 },
+    gardenName: { fontSize: 16, fontWeight: '700', color: '#111827' },
+    ownerName: { fontSize: 13, color: '#6B7280' },
 
     visitBtn: {
-        paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
+        paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1,
     },
-    visitBtnFilled: { backgroundColor: '#059669' },
-    visitBtnOutline: { backgroundColor: '#FFF', borderWidth: 1, borderColor: '#059669' },
+    visitBtnFilled: { backgroundColor: '#059669', borderColor: '#059669' },
+    visitBtnOutline: { backgroundColor: '#FFF', borderColor: '#D1D5DB' },
     visitBtnText: { fontSize: 12, fontWeight: '700' },
     textWhite: { color: '#FFF' },
     textGreen: { color: '#059669' },
