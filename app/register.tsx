@@ -1,3 +1,4 @@
+import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,6 +39,7 @@ export default function RegisterScreen() {
     const handleSocialLogin = (provider: string) => {
         console.log('Social login with:', provider);
         // TODO: Implement social login
+        router.replace('/');
     };
 
     return (
@@ -61,10 +63,11 @@ export default function RegisterScreen() {
 
                     {/* Header */}
                     <View style={styles.header}>
+                        <ThemedText type="title" style={styles.title}>Daftar Akun</ThemedText>
                         <View style={styles.subtitleContainer}>
-                            <ThemedText style={styles.subtitle}>Sudah punya akun ya?</ThemedText>
+                            <ThemedText style={styles.subtitle}>Sudah punya akun ya? </ThemedText>
                             <Pressable onPress={() => router.back()}>
-                                <ThemedText style={styles.link}> Masuk</ThemedText>
+                                <ThemedText type="link" style={styles.link}>Masuk</ThemedText>
                             </Pressable>
                         </View>
                     </View>
@@ -149,9 +152,11 @@ export default function RegisterScreen() {
                     </View>
 
                     {/* Register Button */}
-                    <Pressable style={styles.registerButton} onPress={handleRegister}>
-                        <ThemedText style={styles.registerButtonText}>Daftar</ThemedText>
-                    </Pressable>
+                    <ThemedButton
+                        title="Daftar"
+                        onPress={handleRegister}
+                        style={{ marginTop: 10, marginBottom: 20 }}
+                    />
 
                     {/* Divider */}
                     <View style={styles.dividerContainer}>
@@ -214,6 +219,10 @@ const styles = StyleSheet.create({
     header: {
         marginBottom: 30,
     },
+    title: {
+        color: '#2D5F3F',
+        marginBottom: 8,
+    },
     subtitleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -225,7 +234,6 @@ const styles = StyleSheet.create({
     link: {
         fontSize: 14,
         color: '#4CAF50',
-        fontWeight: '600',
     },
     inputContainer: {
         flexDirection: 'row',
@@ -246,20 +254,6 @@ const styles = StyleSheet.create({
     },
     eyeIcon: {
         padding: 5,
-    },
-    registerButton: {
-        backgroundColor: '#E8F5E9',
-        borderRadius: 12,
-        height: 50,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 10,
-        marginBottom: 20,
-    },
-    registerButtonText: {
-        color: '#4CAF50',
-        fontSize: 16,
-        fontWeight: '600',
     },
     dividerContainer: {
         flexDirection: 'row',

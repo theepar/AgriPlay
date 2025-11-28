@@ -1,3 +1,4 @@
+import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +27,7 @@ export default function LoginScreen() {
 
     const handleSocialLogin = (provider: string) => {
         console.log('Social login with:', provider);
+        router.replace('/');
     };
 
     return (
@@ -49,11 +51,11 @@ export default function LoginScreen() {
 
                     {/* Header */}
                     <View style={styles.header}>
-                        <ThemedText style={styles.title}>Selamat Datang!</ThemedText>
+                        <ThemedText type="title" style={styles.title}>Selamat Datang!</ThemedText>
                         <View style={styles.subtitleContainer}>
                             <ThemedText style={styles.subtitle}>Belum punya akun ya? </ThemedText>
                             <Pressable onPress={() => router.push('/register')}>
-                                <ThemedText style={styles.link}>Daftar</ThemedText>
+                                <ThemedText type="link" style={styles.link}>Daftar</ThemedText>
                             </Pressable>
                         </View>
                     </View>
@@ -99,9 +101,11 @@ export default function LoginScreen() {
                     </View>
 
                     {/* Login Button */}
-                    <Pressable style={styles.loginButton} onPress={handleLogin}>
-                        <ThemedText style={styles.loginButtonText}>Masuk</ThemedText>
-                    </Pressable>
+                    <ThemedButton
+                        title="Masuk"
+                        onPress={handleLogin}
+                        style={{ marginTop: 10, marginBottom: 20 }}
+                    />
 
                     {/* Divider */}
                     <View style={styles.dividerContainer}>
@@ -165,8 +169,6 @@ const styles = StyleSheet.create({
         marginBottom: 30,
     },
     title: {
-        fontSize: 28,
-        fontWeight: 'bold',
         color: '#2D5F3F',
         marginBottom: 8,
     },
@@ -181,7 +183,6 @@ const styles = StyleSheet.create({
     link: {
         fontSize: 14,
         color: '#4CAF50',
-        fontWeight: '600',
     },
     inputContainer: {
         flexDirection: 'row',
@@ -202,20 +203,6 @@ const styles = StyleSheet.create({
     },
     eyeIcon: {
         padding: 5,
-    },
-    loginButton: {
-        backgroundColor: '#E8F5E9',
-        borderRadius: 12,
-        height: 50,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 10,
-        marginBottom: 20,
-    },
-    loginButtonText: {
-        color: '#4CAF50',
-        fontSize: 16,
-        fontWeight: '600',
     },
     dividerContainer: {
         flexDirection: 'row',

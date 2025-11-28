@@ -1,3 +1,4 @@
+import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,17 +35,11 @@ export default function PlantDetailScreen() {
         ));
     };
 
-    const handleStartGardening = () => {
-        // TODO: Start plant journey
-        console.log('Starting garden journey...');
-        router.back();
-    };
-
     return (
         <ThemedView style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <Pressable onPress={() => router.back()}>
+                <Pressable onPress={() => router.navigate('/')}>
                     <Ionicons name="arrow-back" size={24} color="#fff" />
                 </Pressable>
                 <ThemedText style={styles.headerTitle}>Rekomendasi Tanaman</ThemedText>
@@ -55,7 +50,7 @@ export default function PlantDetailScreen() {
                 {/* Hero Section */}
                 <View style={styles.heroSection}>
                     <Image
-                        source={require('@/assets/images/homepage-1.png')}
+                        source={require('@/assets/images/kentang.png')}
                         style={styles.heroImage}
                         contentFit="cover"
                     />
@@ -115,11 +110,12 @@ export default function PlantDetailScreen() {
                 </View>
 
                 {/* Start Button */}
-                <Pressable style={styles.startButton} onPress={handleStartGardening}>
-                    <ThemedText style={styles.startButtonText}>
-                        Mulai Berkebun
-                    </ThemedText>
-                </Pressable>
+                <View style={{ marginHorizontal: 20, marginTop: 30 }}>
+                    <ThemedButton
+                        title="Mulai Berkebun"
+                        onPress={() => router.push({ pathname: '/missions/[id]', params: { id: '1' } })}
+                    />
+                </View>
             </ScrollView>
         </ThemedView>
     );
@@ -265,18 +261,5 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#666',
         fontWeight: '600',
-    },
-    startButton: {
-        marginHorizontal: 20,
-        marginTop: 30,
-        backgroundColor: '#FDE8E8',
-        padding: 18,
-        borderRadius: 12,
-        alignItems: 'center',
-    },
-    startButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#F44336',
     },
 });

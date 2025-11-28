@@ -1,3 +1,4 @@
+import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -178,15 +179,14 @@ export default function OnboardingScreen() {
             <View style={styles.footer}>
                 <Paginator data={onboardingData} scrollX={scrollX} />
 
-                <Pressable style={styles.button} onPress={scrollTo}>
-                    <ThemedText style={styles.buttonText}>
-                        {currentIndex === 0
-                            ? 'Mulai'
-                            : currentIndex === onboardingData.length - 1
-                                ? 'Memulai'
-                                : 'Selanjutnya'}
-                    </ThemedText>
-                </Pressable>
+                <ThemedButton
+                    title={currentIndex === 0
+                        ? 'Mulai'
+                        : currentIndex === onboardingData.length - 1
+                            ? 'Memulai'
+                            : 'Selanjutnya'}
+                    onPress={scrollTo}
+                />
             </View>
         </ThemedView>
     );
@@ -277,21 +277,5 @@ const styles = StyleSheet.create({
         height: 8,
         borderRadius: 4,
         marginHorizontal: 4,
-    },
-    button: {
-        backgroundColor: '#4CAF50',
-        paddingVertical: 16,
-        borderRadius: 12,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    buttonText: {
-        color: '#ffffff',
-        fontSize: 16,
-        fontWeight: '600',
     },
 });

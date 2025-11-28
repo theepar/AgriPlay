@@ -50,7 +50,7 @@ export default function HomeScreen() {
 
     const handlePlantDetail = (plantId: number) => {
         console.log('View plant detail:', plantId);
-        router.push(`/plant-detail?id=${plantId}`);
+        router.push({ pathname: '/missions/[id]', params: { id: plantId.toString() } });
     };
 
     return (
@@ -67,7 +67,7 @@ export default function HomeScreen() {
                         <Pressable style={styles.iconButton}>
                             <Ionicons name="calendar-outline" size={24} color="#2D5F3F" />
                         </Pressable>
-                        <Pressable style={styles.iconButton}>
+                        <Pressable style={styles.iconButton} onPress={() => router.push('/profile')}>
                             <Ionicons name="person-outline" size={24} color="#2D5F3F" />
                         </Pressable>
                     </View>
@@ -84,7 +84,11 @@ export default function HomeScreen() {
                             contentContainerStyle={styles.plantsScroll}
                         >
                             {myPlants.map((plant) => (
-                                <View key={plant.id} style={styles.plantCard}>
+                                <Pressable
+                                    key={plant.id}
+                                    style={styles.plantCard}
+                                    onPress={() => handlePlantDetail(plant.id)}
+                                >
                                     <View style={styles.plantHeader}>
                                         <ThemedText style={styles.plantName}>{plant.name}</ThemedText>
                                         <ThemedText style={styles.plantDate}>
@@ -98,19 +102,16 @@ export default function HomeScreen() {
                                                 <>
                                                     <Ionicons name="notifications" size={16} color="#fff" />
                                                     <ThemedText style={styles.reminderText}>
-                                                        Siren tanaman
+                                                        Siram  tanaman
                                                     </ThemedText>
                                                 </>
                                             )}
                                         </View>
-                                        <Pressable
-                                            style={styles.viewButton}
-                                            onPress={() => handlePlantDetail(plant.id)}
-                                        >
+                                        <View style={styles.viewButton}>
                                             <ThemedText style={styles.viewButtonText}>Lihat</ThemedText>
-                                        </Pressable>
+                                        </View>
                                     </View>
-                                </View>
+                                </Pressable>
                             ))}
                         </ScrollView>
                     </View>
@@ -132,9 +133,12 @@ export default function HomeScreen() {
                     </Pressable>
 
                     {/* Misi */}
-                    <Pressable style={[styles.menuCard, styles.menuCardRed]}>
+                    <Pressable
+                        style={[styles.menuCard, styles.menuCardRed]}
+                        onPress={() => router.push('/missions')}
+                    >
                         <View style={[styles.menuIconContainer, styles.menuIconRed]}>
-                            <Ionicons name="trophy" size={40} color="#F44336" />
+                            <Ionicons name="trophy" size={40} color="#C62828" />
                         </View>
                         <ThemedText style={[styles.menuText, styles.menuTextRed]}>
                             Misi
@@ -142,7 +146,10 @@ export default function HomeScreen() {
                     </Pressable>
 
                     {/* Virtual Garden */}
-                    <Pressable style={[styles.menuCard, styles.menuCardYellow]}>
+                    <Pressable
+                        style={[styles.menuCard, styles.menuCardYellow]}
+                        onPress={() => router.push({ pathname: '/virtual-garden' })}
+                    >
                         <View style={[styles.menuIconContainer, styles.menuIconYellow]}>
                             <Ionicons name="flower" size={40} color="#FFC107" />
                         </View>
@@ -152,7 +159,10 @@ export default function HomeScreen() {
                     </Pressable>
 
                     {/* AgriAI */}
-                    <Pressable style={[styles.menuCard, styles.menuCardGray]}>
+                    <Pressable
+                        style={[styles.menuCard, styles.menuCardGray]}
+                        onPress={() => router.push({ pathname: '/chatbot' })}
+                    >
                         <View style={[styles.menuIconContainer, styles.menuIconGray]}>
                             <Ionicons name="bulb" size={40} color="#9E9E9E" />
                         </View>
@@ -282,6 +292,7 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         padding: 20,
         justifyContent: 'space-between',
+        alignItems: 'center',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,

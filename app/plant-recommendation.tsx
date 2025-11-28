@@ -1,3 +1,4 @@
+import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +12,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 
 type ExperienceLevel = 'pemula' | 'menengah' | 'mahir' | null;
 type SunCondition = 'full' | 'partial' | 'shade' | null;
@@ -22,6 +24,10 @@ export default function PlantRecommendationScreen() {
     const [area, setArea] = useState('');
     const [sunCondition, setSunCondition] = useState<SunCondition>(null);
     const [loadingLocation, setLoadingLocation] = useState(false);
+    const [coordinates, setCoordinates] = useState({
+        latitude: -7.0051, // Bojongsoang
+        longitude: 107.6419
+    });
 
     const handleGetLocation = async () => {
         setLoadingLocation(true);
@@ -35,6 +41,8 @@ export default function PlantRecommendationScreen() {
 
             const currentLocation = await Location.getCurrentPositionAsync({});
             const { latitude, longitude } = currentLocation.coords;
+
+            setCoordinates({ latitude, longitude });
 
             // Reverse geocoding to get address
             const address = await Location.reverseGeocodeAsync({
@@ -67,12 +75,20 @@ export default function PlantRecommendationScreen() {
             return;
         }
 
-        if (step < 4) {
-            setStep(step + 1);
-        } else {
-            // Navigate to results
+        // After step 3, go to results
+        if (step === 3) {
             router.push('/plant-recommendations-result');
+        } else if (step < 3) {
+            setStep(step + 1);
         }
+    };
+
+    // Check if current step is complete for button styling
+    const isStepValid = () => {
+        if (step === 1) return !!experience;
+        if (step === 2) return !!location;
+        if (step === 3) return !!sunCondition;
+        return false;
     };
 
     return (
@@ -166,12 +182,89 @@ export default function PlantRecommendationScreen() {
                             />
                         </View>
 
-                        {/* Map Placeholder */}
+                        {/* Leaflet Map via WebView (No API Key Required) */}
                         <View style={styles.mapContainer}>
-                            <Ionicons name="map" size={80} color="#ccc" />
-                            <ThemedText style={styles.mapText}>
-                                {location || 'Jalan Telekomunikasi No. 123'}
-                            </ThemedText>
+                            <WebView
+                                style={styles.map}
+                                source={{
+                                    html: `
+                                    <!DOCTYPE html>
+                                    <html>
+                                    <head>
+                                        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+                                        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+                                        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                                        <style>
+                                            * { margin: 0; padding: 0; }
+                                            body, html, #map { width: 100%; height: 100%; }
+                                        </style>
+                                    </head>
+                                    <body>
+                                        <div id="map"></div>
+                                        <script>
+                                            var map = L.map('map',{
+                                                zoomControl: true
+                                            }).setView([${coordinates.latitude}, ${coordinates.longitude}], 15);
+                                            
+                                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                                attribution: '© OpenStreetMap',
+                                                maxZoom: 19
+                                            }).addTo(map);
+                                            
+                                            var marker = L.marker([${coordinates.latitude}, ${coordinates.longitude}], {
+                                                draggable: true
+                                            }).addTo(map);
+                                            
+                                            marker.bindPopup('<b>📍 Lokasi</b><br>${location || 'Drag marker atau tap peta'}').openPopup();
+                                            
+                                            // Send marker position to React Native on drag end
+                                            marker.on('dragend', function(e) {
+                                                var position = marker.getLatLng();
+                                                window.ReactNativeWebView.postMessage(JSON.stringify({
+                                                    latitude: position.lat,
+                                                    longitude: position.lng
+                                                }));
+                                            });
+                                            
+                                            // Allow clicking on map to move marker
+                                            map.on('click', function(e) {
+                                                marker.setLatLng(e.latlng);
+                                                window.ReactNativeWebView.postMessage(JSON.stringify({
+                                                    latitude: e.latlng.lat,
+                                                    longitude: e.latlng.lng
+                                                }));
+                                            });
+                                        </script>
+                                    </body>
+                                    </html>
+                                    `
+                                }}
+                                onMessage={(event) => {
+                                    try {
+                                        const data = JSON.parse(event.nativeEvent.data);
+                                        setCoordinates({
+                                            latitude: data.latitude,
+                                            longitude: data.longitude
+                                        });
+                                        // Reverse geocode the new position
+                                        Location.reverseGeocodeAsync({
+                                            latitude: data.latitude,
+                                            longitude: data.longitude
+                                        })
+                                            .then((address) => {
+                                                if (address[0]) {
+                                                    const place = `${address[0].street || ''} ${address[0].city || ''}, ${address[0].region || ''}`;
+                                                    setLocation(place.trim());
+                                                }
+                                            })
+                                            .catch(console.error);
+                                    } catch (error) {
+                                        console.error('Error parsing message:', error);
+                                    }
+                                }}
+                                javaScriptEnabled={true}
+                                domStorageEnabled={true}
+                            />
                         </View>
 
                         <Pressable
@@ -256,11 +349,11 @@ export default function PlantRecommendationScreen() {
 
             {/* Next Button */}
             <View style={styles.footer}>
-                <Pressable style={styles.nextButton} onPress={handleNext}>
-                    <ThemedText style={styles.nextButtonText}>
-                        {step === 3 ? 'Selanjutnya' : 'Selanjutnya'}
-                    </ThemedText>
-                </Pressable>
+                <ThemedButton
+                    title={step === 3 ? 'Lihat Hasil' : 'Selanjutnya'}
+                    disabled={!isStepValid()}
+                    onPress={handleNext}
+                />
             </View>
         </ThemedView>
     );
@@ -343,12 +436,13 @@ const styles = StyleSheet.create({
     mapContainer: {
         backgroundColor: '#fff',
         borderRadius: 12,
-        padding: 40,
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: 200,
+        overflow: 'hidden',
+        height: 300,
         borderWidth: 1,
         borderColor: '#E0E0E0',
+    },
+    map: {
+        flex: 1,
     },
     mapText: {
         marginTop: 15,
@@ -377,16 +471,5 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderTopWidth: 1,
         borderTopColor: '#E0E0E0',
-    },
-    nextButton: {
-        backgroundColor: '#FDE8E8',
-        padding: 18,
-        borderRadius: 12,
-        alignItems: 'center',
-    },
-    nextButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#F44336',
     },
 });
