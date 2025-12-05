@@ -17,7 +17,8 @@
         "backgroundColor": "#E6F4FE"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.unemployment.agriplay"
     },
     "web": {
       "output": "static",
@@ -47,6 +48,12 @@
     "permissions": [
       "LOCATION",
       "FOREGROUND_SERVICE"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "09056833-3766-49a6-be47-2d213cd12236"
+      }
+    }
   }
 }
