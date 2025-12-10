@@ -1,4 +1,4 @@
-# 🗺️ Interactive Map Implementation - AgriPlay
+# 🗺️ Interactive Map Implementation - Agrarian
 
 ## Leaflet + OpenStreetMap (NO API KEY REQUIRED!) ✅
 

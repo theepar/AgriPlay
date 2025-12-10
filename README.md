@@ -1,6 +1,6 @@
-# 🌱 AgriPlay - Smart Farming Companion
+# 🌱 Agrarian - Smart Farming Companion
 
-AgriPlay adalah aplikasi mobile berbasis AI dan Machine Learning yang dirancang untuk membantu generasi muda dan petani pemula dalam dunia pertanian modern. Temukan cara bercocok tanam yang cerdas, efisien, dan produktif langsung dari genggaman Anda!
+Agrarian adalah aplikasi mobile berbasis AI dan Machine Learning yang dirancang untuk membantu generasi muda dan petani pemula dalam dunia pertanian modern. Temukan cara bercocok tanam yang cerdas, efisien, dan produktif langsung dari genggaman Anda!
 
 ## ✨ Fitur Utama
 
@@ -83,7 +83,7 @@ AgriPlay adalah aplikasi mobile berbasis AI dan Machine Learning yang dirancang 
 ## 📱 Struktur Folder
 
 ```
-AgriPlay/
+Agrarian/
 ├── app/                          # Source code utama (Expo Router)
 │   ├── _layout.tsx               # Root layout & navigation
 │   ├── index.tsx                 # Home screen (Dashboard)
@@ -134,10 +134,21 @@ Aplikasi menggunakan **Themed Components** untuk konsistensi UI:
 - Modern font weights (400, 600, 700, 800)
 - Responsive sizing
 
+## 🤖 ML API Integration
+
+Aplikasi terintegrasi dengan ML API (FastAPI) untuk fitur cerdas:
+
+| Endpoint | Status | Deskripsi |
+|----------|--------|-----------|
+| `/crop_recommendation_fastapi` | ✅ **Aktif** | Rekomendasi tanaman berdasarkan lokasi, cuaca, dan preferensi |
+| `/yield_prediction_fastapi` | 🔧 **Maintenance** | Prediksi hasil panen (sedang dalam pengembangan) |
+
+Lihat dokumentasi lengkap di [`ml_agrarian/README.md`](./ml_agrarian/README.md)
+
 ## 📝 Fitur Mendatang
 
-- [ ] **Backend Integration**: Connect to real API
-- [ ] **Real ML Model**: Integrasi dengan model ML untuk rekomendasi tanaman
+- [x] **ML Crop Recommendation**: Rekomendasi tanaman berbasis Machine Learning ✅
+- [ ] **ML Yield Prediction**: Prediksi hasil panen (maintenance)
 - [ ] **Push Notifications**: Reminder untuk watering & tasks
 - [ ] **Social Features**: Forum komunitas & share achievements
 - [ ] **Weather API**: Real-time weather dari OpenWeatherMap

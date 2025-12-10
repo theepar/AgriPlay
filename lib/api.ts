@@ -1,8 +1,3 @@
-/**
- * ML API Service Layer
- * Connects AgriPlay to the ML Model Agrarian API
- */
-
 // Base URL Configuration
 // - Android Emulator: use 10.0.2.2 (localhost alias)
 // - iOS Simulator: use localhost
@@ -10,12 +5,11 @@
 
 // ⚠️ GANTI DENGAN IP KOMPUTER KAMU! (jalankan 'ipconfig' di Command Prompt)
 // Contoh: 192.168.1.5, 192.168.0.100, dll.
-const YOUR_PC_IP = '10.60.1.74'; // IP komputer kamu
+const YOUR_PC_IP = '192.168.18.138'; // IP komputer kamu
 
 // Pilih salah satu:
 const ML_API_BASE_URL = `http://${YOUR_PC_IP}:8000`;  // Untuk HP Fisik
 // const ML_API_BASE_URL = 'http://10.0.2.2:8000';    // Untuk Android Emulator
-// const ML_API_BASE_URL = 'http://localhost:8000';   // Untuk iOS Simulator
 
 // ============ TYPES ============
 

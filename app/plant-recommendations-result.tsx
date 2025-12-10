@@ -8,13 +8,12 @@ import {
     ActivityIndicator,
     Alert,
     Platform,
-    Pressable,
     ScrollView,
     Share,
     StatusBar,
     StyleSheet,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 
 // --- CONSTANTS ---
@@ -105,7 +104,7 @@ export default function PlantRecommendationResultScreen() {
                 `⏱️ Waktu Tumbuh: ${heroPlant.growthTime}\n` +
                 `📊 Tingkat Kesulitan: ${heroPlant.difficulty}\n\n` +
                 `📝 ${heroPlant.description}\n\n` +
-                `Dapatkan rekomendasi tanaman kamu di AgriPlay! 🌿`;
+                `Dapatkan rekomendasi tanaman kamu di Agrarian! 🌿`;
 
             const result = await Share.share({
                 message: shareMessage,
@@ -149,48 +148,61 @@ export default function PlantRecommendationResultScreen() {
                     </View>
                 )}
 
-                {/* TITLE BLOCK */}
-                <View style={styles.titleBlock}>
-                    <ThemedText type="title" style={styles.titleMain}>Rekomendasi Utama</ThemedText>
-                    <ThemedText style={styles.titleSub}>
-                        Berdasarkan iklim <ThemedText style={{ fontWeight: '700', color: '#059669' }}>{location}</ThemedText> & level <ThemedText style={{ fontWeight: '700', color: '#059669' }}>{experience.charAt(0).toUpperCase() + experience.slice(1)}</ThemedText>.
-                    </ThemedText>
-                </View>
-                {/* HERO CARD (Text Only) */}
-                <Pressable style={styles.heroCard} onPress={() => handlePlantSelect(heroPlant.id)}>
-                    {/* Header with Title and Badge */}
-                    <View style={styles.heroHeader}>
-                        <ThemedText type="title" style={styles.heroTitle}>
-                            {mlRecommendation || heroPlant.name}
-                        </ThemedText>
-                        <View style={styles.matchBadgeInline}>
-                            <Ionicons name="sparkles" size={12} color="#FFF" />
-                            <ThemedText style={styles.matchText}>{heroPlant.matchScore}% Match</ThemedText>
+                {/* CONTENT - Only show after loading complete */}
+                {!loading && (
+                    <>
+                        {/* TITLE BLOCK */}
+                        <View style={styles.titleBlock}>
+                            <ThemedText type="title" style={styles.titleMain}>Rekomendasi Utama</ThemedText>
+                            <ThemedText style={styles.titleSub}>
+                                Berdasarkan iklim <ThemedText style={{ fontWeight: '700', color: '#059669' }}>{location}</ThemedText> & level <ThemedText style={{ fontWeight: '700', color: '#059669' }}>{experience.charAt(0).toUpperCase() + experience.slice(1)}</ThemedText>.
+                            </ThemedText>
                         </View>
-                    </View>
+                        {/* HERO CARD (Static, not clickable) */}
+                        <View style={styles.heroCard}>
+                            {/* Header with Title and Badge */}
+                            <View style={styles.heroHeader}>
+                                <ThemedText type="title" style={styles.heroTitle}>
+                                    {mlRecommendation || heroPlant.name}
+                                </ThemedText>
+                                <View style={styles.matchBadgeInline}>
+                                    <Ionicons name="sparkles" size={12} color="#FFF" />
+                                    <ThemedText style={styles.matchText}>{heroPlant.matchScore}% Match</ThemedText>
+                                </View>
+                            </View>
 
-                    {/* Content */}
-                    <View style={styles.heroContent}>
-                        <View style={styles.heroHeaderRow}>
-                            <View style={{ flex: 1 }}>
-                                <View style={styles.heroTags}>
-                                    <View style={styles.tag}>
-                                        <Ionicons name="time-outline" size={12} color="#6B7280" />
-                                        <ThemedText style={styles.tagText}>{heroPlant.growthTime}</ThemedText>
-                                    </View>
-                                    <View style={styles.dot} />
-                                    <View style={styles.tag}>
-                                        <Ionicons name="bar-chart-outline" size={12} color="#6B7280" />
-                                        <ThemedText style={styles.tagText}>{heroPlant.difficulty}</ThemedText>
+                            {/* Content */}
+                            <View style={styles.heroContent}>
+                                <View style={styles.heroHeaderRow}>
+                                    <View style={{ flex: 1 }}>
+                                        <View style={styles.heroTags}>
+                                            <View style={styles.tag}>
+                                                <Ionicons name="time-outline" size={12} color="#6B7280" />
+                                                <ThemedText style={styles.tagText}>{heroPlant.growthTime}</ThemedText>
+                                            </View>
+                                            <View style={styles.dot} />
+                                            <View style={styles.tag}>
+                                                <Ionicons name="bar-chart-outline" size={12} color="#6B7280" />
+                                                <ThemedText style={styles.tagText}>{heroPlant.difficulty}</ThemedText>
+                                            </View>
+                                        </View>
                                     </View>
                                 </View>
+
+                                <ThemedText style={styles.heroDesc}>{dynamicDescription || heroPlant.description}</ThemedText>
                             </View>
                         </View>
 
-                        <ThemedText style={styles.heroDesc}>{dynamicDescription || heroPlant.description}</ThemedText>
-                    </View>
-                </Pressable>
-
+                        {/* Back to Home Button */}
+                        <TouchableOpacity
+                            style={styles.homeButton}
+                            onPress={() => router.replace('/')}
+                        >
+                            <Ionicons name="home-outline" size={20} color="#FFF" />
+                            <ThemedText style={styles.homeButtonText}>Kembali ke Beranda</ThemedText>
+                        </TouchableOpacity>
+                    </>
+                )}
 
                 <View style={{ height: 40 }} />
             </ScrollView>
@@ -374,5 +386,25 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#059669',
         fontWeight: '600',
+    },
+    homeButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#059669',
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        borderRadius: 16,
+        gap: 10,
+        shadowColor: '#059669',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    homeButtonText: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#FFF',
     },
 });

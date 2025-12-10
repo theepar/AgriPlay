@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "AgriPlay",
-    "slug": "AgriPlay",
+    "name": "Agrarian",
+    "slug": "Agrarian",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "agriplay",
+    "scheme": "agrarian",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -18,7 +18,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.unemployment.agriplay"
+      "package": "com.unemployment.agrarian"
     },
     "web": {
       "output": "static",

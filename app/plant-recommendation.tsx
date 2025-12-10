@@ -59,7 +59,9 @@ export default function PlantRecommendationScreen() {
                 return;
             }
 
-            const currentLocation = await Location.getCurrentPositionAsync({});
+            const currentLocation = await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.Balanced, // Faster, ~100m accuracy
+            });
             const { latitude, longitude } = currentLocation.coords;
 
             setCoordinates({ latitude, longitude });

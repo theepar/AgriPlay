@@ -70,50 +70,56 @@ export default function HomeScreen() {
                 return;
             }
 
-            // 2. Get current location
-            const location = await Location.getCurrentPositionAsync({});
+            // 2. Get current location with LOW accuracy for speed
+            const location = await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.Low, // Much faster (~1-2 sec vs 10+ sec)
+            });
             const { latitude, longitude } = location.coords;
 
-            // 3. Get location name
-            const address = await Location.reverseGeocodeAsync({ latitude, longitude });
-            const locationName = address[0]?.city || address[0]?.subregion || 'Lokasi Tidak Diketahui';
+            // 3. Fetch location name & weather in PARALLEL for speed
+            const [addressResult, weatherResult] = await Promise.allSettled([
+                Location.reverseGeocodeAsync({ latitude, longitude }),
+                fetch(
+                    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`,
+                    { signal: AbortSignal.timeout(5000) } // 5 sec timeout
+                )
+            ]);
 
-            // 4. Fetch weather from OpenWeatherMap API (free tier)
-            const API_KEY = '1a2b3c4d5e6f7g8h9i0j'; // Ganti dengan API key Anda dari openweathermap.org
-            const weatherResponse = await fetch(
-                `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&lang=id&appid=${API_KEY}`
-            );
+            // Get location name
+            let locationName = 'Lokasi Tidak Diketahui';
+            if (addressResult.status === 'fulfilled' && addressResult.value[0]) {
+                locationName = addressResult.value[0].city || addressResult.value[0].subregion || 'Lokasi Tidak Diketahui';
+            }
 
-            if (weatherResponse.ok) {
-                const weatherData = await weatherResponse.json();
-                const weatherMain = weatherData.weather[0]?.main || 'Clear';
-                const temp = Math.round(weatherData.main?.temp || 27);
-                
-                // Tentukan deskripsi cuaca dalam bahasa Indonesia
+            // Process weather (using Open-Meteo - no API key needed, faster)
+            if (weatherResult.status === 'fulfilled' && weatherResult.value.ok) {
+                const weatherData = await weatherResult.value.json();
+                const current = weatherData.current_weather;
+                const temp = Math.round(current.temperature);
+                const code = current.weathercode;
+
+                // Map weather code to description
                 let weatherDescription = 'Cerah';
                 let iconName = 'sunny';
-                
-                if (weatherMain === 'Clear') {
+
+                if (code === 0) {
                     weatherDescription = 'Cerah';
                     iconName = 'sunny';
-                } else if (weatherMain === 'Clouds') {
-                    weatherDescription = 'Mendung';
-                    iconName = 'cloudy';
-                } else if (weatherMain === 'Rain' || weatherMain === 'Drizzle') {
-                    weatherDescription = 'Hujan';
-                    iconName = 'rainy';
-                } else if (weatherMain === 'Thunderstorm') {
-                    weatherDescription = 'Hujan Petir';
-                    iconName = 'thunderstorm';
-                } else if (weatherMain === 'Snow') {
-                    weatherDescription = 'Bersalju';
-                    iconName = 'snow';
-                } else if (weatherMain === 'Mist' || weatherMain === 'Fog' || weatherMain === 'Haze') {
-                    weatherDescription = 'Berkabut';
-                    iconName = 'cloudy';
-                } else {
+                } else if (code >= 1 && code <= 3) {
                     weatherDescription = 'Berawan';
                     iconName = 'partly-sunny';
+                } else if (code >= 45 && code <= 48) {
+                    weatherDescription = 'Berkabut';
+                    iconName = 'cloudy';
+                } else if (code >= 51 && code <= 67) {
+                    weatherDescription = 'Hujan Ringan';
+                    iconName = 'rainy';
+                } else if (code >= 80 && code <= 82) {
+                    weatherDescription = 'Hujan Deras';
+                    iconName = 'rainy';
+                } else if (code >= 95 && code <= 99) {
+                    weatherDescription = 'Hujan Petir';
+                    iconName = 'thunderstorm';
                 }
 
                 setWeather({
@@ -201,12 +207,12 @@ export default function HomeScreen() {
             </View>
 
             {/* --- BAGIAN 2: SCROLLABLE CONTENT --- */}
-            <ScrollView 
-                style={styles.scrollContainer} 
-                contentContainerStyle={styles.scrollContent} 
+            <ScrollView
+                style={styles.scrollContainer}
+                contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                
+
                 {/* 3. Active Plants Section */}
                 <View style={[styles.sectionHeader, styles.containerPadding]}>
                     <ThemedText style={styles.sectionTitle}>Kebun Saya</ThemedText>
@@ -264,10 +270,6 @@ export default function HomeScreen() {
                     <MenuCard title="Agri AI" subtitle="Tanya Jawab" icon="chatbubbles" color="#2563EB" onPress={() => router.push('/chatbot')} />
                 </View>
 
-                <Pressable style={styles.logoutBtn} onPress={handleLogout}>
-                    <ThemedText style={styles.logoutText}>Log Out (Dev)</ThemedText>
-                </Pressable>
-
                 <View style={{ height: 40 }} />
             </ScrollView>
         </View>
@@ -303,7 +305,7 @@ const styles = StyleSheet.create({
         borderBottomLeftRadius: 32,
         borderBottomRightRadius: 32,
         overflow: 'hidden', // Penting agar gradient mengikuti border radius
-        
+
         // Shadow agar terlihat melayang di atas scroll view
         zIndex: 10,
         backgroundColor: '#fff', // Fallback color
@@ -386,7 +388,7 @@ const styles = StyleSheet.create({
         elevation: 5,
     },
     weatherTemp: {
-        fontSize: 40, 
+        fontSize: 40,
         fontWeight: '800',
         color: '#111827',
         lineHeight: 48, // Tambah line height agar tidak terpotong
@@ -401,7 +403,7 @@ const styles = StyleSheet.create({
 
     // --- 2. SCROLLABLE CONTENT STYLES ---
     scrollContainer: {
-        flex: 1, 
+        flex: 1,
     },
     scrollContent: {
         paddingTop: 24,
