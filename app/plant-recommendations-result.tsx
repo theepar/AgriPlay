@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
     Alert,
     Dimensions,
@@ -24,6 +25,7 @@ const GAP = 16;
 const PADDING = 24;
 const COLUMN_WIDTH = (width - (PADDING * 2) - GAP) / 2;
 
+// Default mapping from local plant data
 const RECOMMENDED_PLANTS = PLANTS_DATA.map((plant, index) => ({
     id: Number(plant.id),
     name: plant.name,
@@ -35,13 +37,39 @@ const RECOMMENDED_PLANTS = PLANTS_DATA.map((plant, index) => ({
     color: plant.color,
 }));
 
+// Plant name mapping for ML API results
+const PLANT_NAME_MAP: Record<string, typeof RECOMMENDED_PLANTS[0] | undefined> = {};
+PLANTS_DATA.forEach((plant, index) => {
+    PLANT_NAME_MAP[plant.name.toLowerCase()] = RECOMMENDED_PLANTS[index];
+});
+
 export default function PlantRecommendationResultScreen() {
     const params = useLocalSearchParams();
     const location = (params.location as string) || 'Lokasi Tidak Diketahui';
-    const experience = (params.experience as string) || 'Pemula';
-    
-    const heroPlant = RECOMMENDED_PLANTS[0];
-    const otherPlants = RECOMMENDED_PLANTS.slice(1);
+    const experience = (params.experience as string) || 'pemula';
+    const plantResult = (params.plantResult as string) || '';
+
+    // State for display
+    const [mlRecommendation, setMlRecommendation] = useState<string | null>(null);
+    const [heroPlant, setHeroPlant] = useState(RECOMMENDED_PLANTS[0]);
+    const [otherPlants, setOtherPlants] = useState(RECOMMENDED_PLANTS.slice(1));
+
+    // Process plant result from params on mount
+    useEffect(() => {
+        if (plantResult) {
+            setMlRecommendation(plantResult);
+
+            // Try to find matching plant in our local data
+            const matchedPlant = PLANT_NAME_MAP[plantResult.toLowerCase()];
+            if (matchedPlant) {
+                setHeroPlant({ ...matchedPlant, matchScore: 98 });
+                setOtherPlants(RECOMMENDED_PLANTS.filter(p => p.id !== matchedPlant.id));
+            } else {
+                console.log('Plant not found in local data:', plantResult);
+                // Keep showing the plant name from API in badge
+            }
+        }
+    }, [plantResult]);
 
     const handlePlantSelect = (plantId: number) => {
         router.push({ pathname: '/plant-detail', params: { id: plantId.toString() } });
@@ -93,6 +121,16 @@ export default function PlantRecommendationResultScreen() {
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
+                {/* ML RECOMMENDATION BADGE */}
+                {mlRecommendation && (
+                    <View style={styles.mlBadge}>
+                        <Ionicons name="sparkles" size={16} color="#059669" />
+                        <ThemedText style={styles.mlBadgeText}>
+                            {mlRecommendation}
+                        </ThemedText>
+                    </View>
+                )}
 
                 {/* TITLE BLOCK */}
                 <View style={styles.titleBlock}>
@@ -345,5 +383,48 @@ const styles = StyleSheet.create({
     },
     gridMetaText: {
         fontSize: 12, color: '#9CA3AF',
+    },
+
+    // ML API States
+    loadingContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 40,
+        gap: 12,
+    },
+    loadingText: {
+        fontSize: 14,
+        color: '#6B7280',
+        fontWeight: '500',
+    },
+    errorContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FEF3C7',
+        padding: 12,
+        borderRadius: 12,
+        marginBottom: 16,
+        gap: 8,
+    },
+    errorText: {
+        fontSize: 13,
+        color: '#92400E',
+        flex: 1,
+    },
+    mlBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#ECFDF5',
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 20,
+        marginBottom: 16,
+        gap: 8,
+        alignSelf: 'flex-start',
+    },
+    mlBadgeText: {
+        fontSize: 14,
+        color: '#059669',
+        fontWeight: '600',
     },
 });
