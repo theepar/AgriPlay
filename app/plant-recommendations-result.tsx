@@ -1,9 +1,8 @@
 import { ThemedText } from '@/components/themed-text';
 import { PLANTS_DATA } from '@/constants/plants';
-import { getCropRecommendation, mapExperienceToAPI, mapSunConditionToAPI } from '@/lib/api';
+import { getCropDescription, getCropRecommendation, mapExperienceToAPI, mapSunConditionToAPI } from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -50,13 +49,13 @@ export default function PlantRecommendationResultScreen() {
     const location = (params.location as string) || 'Lokasi Tidak Diketahui';
     const experience = (params.experience as string) || 'pemula';
     const sunCondition = (params.sunCondition as string) || 'full';
-    const area = parseFloat(params.area as string) || 20;
     const latitude = parseFloat(params.latitude as string) || -7.0051;
     const longitude = parseFloat(params.longitude as string) || 107.6419;
 
     // State for ML API
     const [loading, setLoading] = useState(true);
     const [mlRecommendation, setMlRecommendation] = useState<string | null>(null);
+    const [dynamicDescription, setDynamicDescription] = useState<string | null>(null);
     const [heroPlant, setHeroPlant] = useState(RECOMMENDED_PLANTS[0]);
     const [otherPlants, setOtherPlants] = useState(RECOMMENDED_PLANTS.slice(1));
 
@@ -76,23 +75,23 @@ export default function PlantRecommendationResultScreen() {
                     lon: longitude,
                 },
                 sun_exposure: mapSunConditionToAPI(sunCondition),
-                area: area,
+                area: 20,
             };
 
-            console.log('Calling ML API with:', requestData);
             const response = await getCropRecommendation(requestData);
-            console.log('ML API Response:', response);
 
             if (response.plant) {
                 setMlRecommendation(response.plant);
+
+                // Get dynamic description
+                const description = getCropDescription(response.plant);
+                setDynamicDescription(description);
 
                 // Try to find matching plant in our local data
                 const matchedPlant = PLANT_NAME_MAP[response.plant.toLowerCase()];
                 if (matchedPlant) {
                     setHeroPlant({ ...matchedPlant, matchScore: 98 });
                     setOtherPlants(RECOMMENDED_PLANTS.filter(p => p.id !== matchedPlant.id));
-                } else {
-                    console.log('Plant not found in local data:', response.plant);
                 }
             }
         } catch (error) {
@@ -162,16 +161,6 @@ export default function PlantRecommendationResultScreen() {
                     </View>
                 )}
 
-                {/* ML RECOMMENDATION BADGE */}
-                {mlRecommendation && !loading && (
-                    <View style={styles.mlBadge}>
-                        <Ionicons name="sparkles" size={16} color="#059669" />
-                        <ThemedText style={styles.mlBadgeText}>
-                            {mlRecommendation}
-                        </ThemedText>
-                    </View>
-                )}
-
                 {/* TITLE BLOCK */}
                 <View style={styles.titleBlock}>
                     <ThemedText type="title" style={styles.titleMain}>Rekomendasi Utama</ThemedText>
@@ -179,18 +168,14 @@ export default function PlantRecommendationResultScreen() {
                         Berdasarkan iklim <ThemedText style={{ fontWeight: '700', color: '#059669' }}>{location}</ThemedText> & level <ThemedText style={{ fontWeight: '700', color: '#059669' }}>{experience.charAt(0).toUpperCase() + experience.slice(1)}</ThemedText>.
                     </ThemedText>
                 </View>
-
-                {/* HERO CARD (The Winner) */}
+                {/* HERO CARD (Text Only) */}
                 <Pressable style={styles.heroCard} onPress={() => handlePlantSelect(heroPlant.id)}>
-                    {/* Image Background */}
-                    <View style={styles.heroImageContainer}>
-                        <Image source={{ uri: heroPlant.image }} style={styles.heroImage} contentFit="cover" />
-                        <LinearGradient
-                            colors={['transparent', 'rgba(0,0,0,0.7)']}
-                            style={styles.heroGradient}
-                        />
-                        {/* Match Badge */}
-                        <View style={styles.matchBadge}>
+                    {/* Header with Title and Badge */}
+                    <View style={styles.heroHeader}>
+                        <ThemedText type="title" style={styles.heroTitle}>
+                            {mlRecommendation || heroPlant.name}
+                        </ThemedText>
+                        <View style={styles.matchBadgeInline}>
                             <Ionicons name="sparkles" size={12} color="#FFF" />
                             <ThemedText style={styles.matchText}>{heroPlant.matchScore}% Match</ThemedText>
                         </View>
@@ -200,7 +185,6 @@ export default function PlantRecommendationResultScreen() {
                     <View style={styles.heroContent}>
                         <View style={styles.heroHeaderRow}>
                             <View style={{ flex: 1 }}>
-                                <ThemedText type="title" style={styles.heroName}>{heroPlant.name}</ThemedText>
                                 <View style={styles.heroTags}>
                                     <View style={styles.tag}>
                                         <Ionicons name="time-outline" size={12} color="#6B7280" />
@@ -213,15 +197,9 @@ export default function PlantRecommendationResultScreen() {
                                     </View>
                                 </View>
                             </View>
-                            <TouchableOpacity
-                                style={styles.addBtn}
-                                onPress={() => handleAddToGarden(heroPlant.id)}
-                            >
-                                <Ionicons name="add" size={24} color="#FFF" />
-                            </TouchableOpacity>
                         </View>
 
-                        <ThemedText style={styles.heroDesc}>{heroPlant.description}</ThemedText>
+                        <ThemedText style={styles.heroDesc}>{dynamicDescription || heroPlant.description}</ThemedText>
                     </View>
                 </Pressable>
 
@@ -258,7 +236,7 @@ export default function PlantRecommendationResultScreen() {
 
                 <View style={{ height: 40 }} />
             </ScrollView>
-        </View>
+        </View >
     );
 }
 
@@ -316,6 +294,29 @@ const styles = StyleSheet.create({
         shadowRadius: 20,
         elevation: 10,
         borderWidth: 1, borderColor: '#F3F4F6',
+    },
+    heroHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        padding: 20,
+        paddingBottom: 0,
+    },
+    heroTitle: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: '#111827',
+        flex: 1,
+        marginRight: 12,
+    },
+    matchBadgeInline: {
+        backgroundColor: '#059669',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
     },
     heroImageContainer: {
         height: 200,

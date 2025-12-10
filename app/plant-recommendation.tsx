@@ -30,7 +30,6 @@ export default function PlantRecommendationScreen() {
     const [step, setStep] = useState(1);
     const [experience, setExperience] = useState<ExperienceLevel>(null);
     const [location, setLocation] = useState('');
-    const [area, setArea] = useState('');
     const [sunCondition, setSunCondition] = useState<SunCondition>(null);
     const [loadingLocation, setLoadingLocation] = useState(false);
     const [weather, setWeather] = useState<{ temp: string; desc: string } | null>(null);
@@ -85,7 +84,6 @@ export default function PlantRecommendationScreen() {
             });
 
         } catch (error) {
-            console.error('Error getting location/weather:', error);
             alert('Gagal mendapatkan data lokasi/cuaca');
         }
         setLoadingLocation(false);
@@ -103,7 +101,6 @@ export default function PlantRecommendationScreen() {
                     location: location,
                     experience: experience,
                     sunCondition: sunCondition,
-                    area: area,
                     latitude: coordinates.latitude.toString(),
                     longitude: coordinates.longitude.toString(),
                 }

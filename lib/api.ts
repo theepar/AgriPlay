@@ -7,7 +7,7 @@
 // - Android Emulator: use 10.0.2.2 (localhost alias)
 // - iOS Simulator: use localhost
 // - Physical device: use your computer's IP address (e.g., 192.168.1.x)
-const ML_API_BASE_URL = 'http://172.18.176.1:8000';
+const ML_API_BASE_URL = 'http://10.0.2.2:8000';
 
 // ============ TYPES ============
 
@@ -146,6 +146,29 @@ export async function checkApiHealth(): Promise<boolean> {
         console.error('ML API health check failed:', error);
         return false;
     }
+}
+
+// ============ CROP DESCRIPTIONS ============
+
+const CROP_DESCRIPTIONS: Record<string, string> = {
+    'onions and shallots': 'Bawang merah dan bawang bombay adalah tanaman umbi yang mudah ditanam dan cocok untuk pemula. Tanaman ini tahan terhadap berbagai kondisi cuaca dan membutuhkan sinar matahari penuh untuk pertumbuhan optimal.',
+    'rice': 'Padi adalah tanaman pangan utama yang membutuhkan banyak air dan iklim tropis. Cocok untuk lahan basah dengan sistem irigasi yang baik.',
+    'maize': 'Jagung adalah tanaman serbaguna yang dapat tumbuh di berbagai jenis tanah. Membutuhkan sinar matahari penuh dan penyiraman teratur.',
+    'cassava': 'Singkong adalah tanaman umbi yang sangat tahan kekeringan dan mudah dibudidayakan. Ideal untuk lahan marginal dengan perawatan minimal.',
+    'potatoes': 'Kentang adalah tanaman umbi yang produktif dan mudah ditanam. Membutuhkan tanah gembur dan suhu sejuk untuk hasil optimal.',
+    'soybeans': 'Kedelai adalah tanaman kacang-kacangan kaya protein yang juga memperbaiki kesuburan tanah. Cocok untuk rotasi tanaman.',
+    'vegetables': 'Sayuran hijau seperti bayam, kangkung, dan sawi mudah ditanam dan cepat panen. Ideal untuk kebun rumah dengan perawatan minimal.',
+    'tomatoes': 'Tomat adalah tanaman buah yang produktif dan serbaguna. Membutuhkan sinar matahari penuh dan penyangga untuk pertumbuhan vertikal.',
+    'chillies': 'Cabai adalah tanaman yang mudah ditanam dan berbuah lebat. Cocok untuk ditanam di pot atau kebun dengan sinar matahari penuh.',
+    'sugar cane': 'Tebu adalah tanaman industri yang membutuhkan iklim tropis dan banyak air. Masa tanam panjang tetapi hasil melimpah.',
+};
+
+/**
+ * Get description for a crop
+ */
+export function getCropDescription(plantName: string): string {
+    const key = plantName.toLowerCase();
+    return CROP_DESCRIPTIONS[key] || `${plantName} adalah tanaman yang cocok untuk kondisi lahan dan iklim Anda berdasarkan analisis AI. Tanaman ini direkomendasikan karena sesuai dengan level pengalaman dan kondisi pencahayaan yang tersedia.`;
 }
 
 // Export base URL for configuration
