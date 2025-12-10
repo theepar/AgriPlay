@@ -114,26 +114,6 @@ Agrarian/
 └── scripts/                      # Build & automation scripts
 ```
 
-## 🎨 Design System
-
-### Themed Components
-Aplikasi menggunakan **Themed Components** untuk konsistensi UI:
-- `<ThemedText>` - Text dengan auto theming (light/dark mode ready)
-- `<ThemedButton>` - Button dengan variant system
-- `<ThemedView>` - View container dengan themed background
-
-### Color Palette
-- **Primary**: `#059669` (Green - Agriculture theme)
-- **Secondary**: `#10B981` (Light Green)
-- **Accent**: `#F59E0B` (Orange/Yellow)
-- **Text**: `#111827` (Dark Gray)
-- **Background**: `#F9FAFB` (Light Gray)
-
-### Typography & Spacing
-- Consistent spacing (8px grid system)
-- Modern font weights (400, 600, 700, 800)
-- Responsive sizing
-
 ## 🤖 ML API Integration
 
 Aplikasi terintegrasi dengan ML API (FastAPI) untuk fitur cerdas:
@@ -174,4 +154,8 @@ Lihat dokumentasi lengkap di [`ml_agrarian/README.md`](./ml_agrarian/README.md)
 Aplikasi ini dibuat untuk tujuan edukasi dan demonstrasi.
 
 Versi: 1.0.0 (Beta)  
-Last Updated: November 2025
+Last Updated: Desember 2025
+
+## 🙏 Credits
+
+- **ML Model Agrarian**: [fadhilr2/ml_model_agrarian](https://github.com/fadhilr2/ml_model_agrarian) - Machine Learning model untuk rekomendasi tanaman dan prediksi hasil panen
