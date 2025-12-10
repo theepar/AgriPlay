@@ -1,11 +1,13 @@
 import { ThemedText } from '@/components/themed-text';
 import { PLANTS_DATA } from '@/constants/plants';
+import { getCropRecommendation, mapExperienceToAPI, mapSunConditionToAPI } from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     Dimensions,
     Platform,
@@ -47,29 +49,59 @@ export default function PlantRecommendationResultScreen() {
     const params = useLocalSearchParams();
     const location = (params.location as string) || 'Lokasi Tidak Diketahui';
     const experience = (params.experience as string) || 'pemula';
-    const plantResult = (params.plantResult as string) || '';
+    const sunCondition = (params.sunCondition as string) || 'full';
+    const area = parseFloat(params.area as string) || 20;
+    const latitude = parseFloat(params.latitude as string) || -7.0051;
+    const longitude = parseFloat(params.longitude as string) || 107.6419;
 
-    // State for display
+    // State for ML API
+    const [loading, setLoading] = useState(true);
     const [mlRecommendation, setMlRecommendation] = useState<string | null>(null);
     const [heroPlant, setHeroPlant] = useState(RECOMMENDED_PLANTS[0]);
     const [otherPlants, setOtherPlants] = useState(RECOMMENDED_PLANTS.slice(1));
 
-    // Process plant result from params on mount
+    // Call ML API on mount
     useEffect(() => {
-        if (plantResult) {
-            setMlRecommendation(plantResult);
+        fetchRecommendation();
+    }, []);
 
-            // Try to find matching plant in our local data
-            const matchedPlant = PLANT_NAME_MAP[plantResult.toLowerCase()];
-            if (matchedPlant) {
-                setHeroPlant({ ...matchedPlant, matchScore: 98 });
-                setOtherPlants(RECOMMENDED_PLANTS.filter(p => p.id !== matchedPlant.id));
-            } else {
-                console.log('Plant not found in local data:', plantResult);
-                // Keep showing the plant name from API in badge
+    const fetchRecommendation = async () => {
+        try {
+            setLoading(true);
+
+            const requestData = {
+                tingkat_komitmen: mapExperienceToAPI(experience),
+                location: {
+                    lat: latitude,
+                    lon: longitude,
+                },
+                sun_exposure: mapSunConditionToAPI(sunCondition),
+                area: area,
+            };
+
+            console.log('Calling ML API with:', requestData);
+            const response = await getCropRecommendation(requestData);
+            console.log('ML API Response:', response);
+
+            if (response.plant) {
+                setMlRecommendation(response.plant);
+
+                // Try to find matching plant in our local data
+                const matchedPlant = PLANT_NAME_MAP[response.plant.toLowerCase()];
+                if (matchedPlant) {
+                    setHeroPlant({ ...matchedPlant, matchScore: 98 });
+                    setOtherPlants(RECOMMENDED_PLANTS.filter(p => p.id !== matchedPlant.id));
+                } else {
+                    console.log('Plant not found in local data:', response.plant);
+                }
             }
+        } catch (error) {
+            console.error('ML API Error:', error);
+            // Keep using default local data as fallback
+        } finally {
+            setLoading(false);
         }
-    }, [plantResult]);
+    };
 
     const handlePlantSelect = (plantId: number) => {
         router.push({ pathname: '/plant-detail', params: { id: plantId.toString() } });
@@ -122,8 +154,16 @@ export default function PlantRecommendationResultScreen() {
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
+                {/* LOADING STATE */}
+                {loading && (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color="#059669" />
+                        <ThemedText style={styles.loadingText}>Menganalisis lokasi...</ThemedText>
+                    </View>
+                )}
+
                 {/* ML RECOMMENDATION BADGE */}
-                {mlRecommendation && (
+                {mlRecommendation && !loading && (
                     <View style={styles.mlBadge}>
                         <Ionicons name="sparkles" size={16} color="#059669" />
                         <ThemedText style={styles.mlBadgeText}>

@@ -6,7 +6,7 @@
 // Base URL Configuration
 // - Android Emulator: use 10.0.2.2 (localhost alias)
 // - iOS Simulator: use localhost
-// - Physical device: use your computer's IP address
+// - Physical device: use your computer's IP address (e.g., 192.168.1.x)
 const ML_API_BASE_URL = 'http://172.18.176.1:8000';
 
 // ============ TYPES ============

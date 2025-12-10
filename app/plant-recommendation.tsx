@@ -15,7 +15,7 @@ import {
     StyleSheet,
     TextInput,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 
@@ -33,7 +33,6 @@ export default function PlantRecommendationScreen() {
     const [area, setArea] = useState('');
     const [sunCondition, setSunCondition] = useState<SunCondition>(null);
     const [loadingLocation, setLoadingLocation] = useState(false);
-    const [loadingSubmit, setLoadingSubmit] = useState(false);
     const [weather, setWeather] = useState<{ temp: string; desc: string } | null>(null);
     const [coordinates, setCoordinates] = useState({
         latitude: -7.0051,
@@ -71,7 +70,6 @@ export default function PlantRecommendationScreen() {
             if (address[0]) {
                 const place = `${address[0].street || ''} ${address[0].city || ''}, ${address[0].region || ''}`;
                 setLocation(place.trim());
-                console.log(address);
             }
 
             // Get Weather
@@ -99,14 +97,13 @@ export default function PlantRecommendationScreen() {
         if (step === 3 && !sunCondition) return;
 
         if (step === 3) {
-            // Navigate to result page with collected data
             router.push({
                 pathname: '/plant-recommendations-result',
                 params: {
                     location: location,
                     experience: experience,
                     sunCondition: sunCondition,
-                    area: area || '20',
+                    area: area,
                     latitude: coordinates.latitude.toString(),
                     longitude: coordinates.longitude.toString(),
                 }
