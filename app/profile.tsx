@@ -22,8 +22,8 @@ const GAP = 16;
 const COLUMN_WIDTH = (width - (PADDING_HORIZONTAL * 2) - GAP) / 2;
 
 const USER_PROFILE = {
-    name: 'Agri Master',
-    handle: '@agrimaster_id',
+    name: 'Agra Master',
+    handle: '@agramaster_id',
     bio: 'Petani urban spesialis hidroponik & tanaman obat. Mari hijaukan bumi! 🌿',
     level: 19,
     xpCurrent: 1984,
@@ -149,30 +149,30 @@ export default function ProfileScreen() {
                             .sort((a, b) => b.progress - a.progress)
                             .slice(0, 2)
                             .map((plant) => (
-                            <Pressable
-                                key={plant.id}
-                                style={styles.plantCard}
-                                onPress={() => router.push({ pathname: '/missions/[id]', params: { id: plant.id.toString() } })}
-                            >
-                                {/* Image */}
-                                <Image source={{ uri: plant.image }} style={styles.plantImage} contentFit="cover" />
+                                <Pressable
+                                    key={plant.id}
+                                    style={styles.plantCard}
+                                    onPress={() => router.push({ pathname: '/missions/[id]', params: { id: plant.id.toString() } })}
+                                >
+                                    {/* Image */}
+                                    <Image source={{ uri: plant.image }} style={styles.plantImage} contentFit="cover" />
 
-                                {/* Status Badge Over Image */}
-                                <View style={styles.statusBadge}>
-                                    <ThemedText style={styles.statusText}>{plant.status}</ThemedText>
-                                </View>
-
-                                {/* Info */}
-                                <View style={styles.plantInfo}>
-                                    <ThemedText type="defaultSemiBold" style={styles.plantName}>{plant.name}</ThemedText>
-
-                                    {/* Mini Progress */}
-                                    <View style={styles.miniProgressTrack}>
-                                        <View style={[styles.miniProgressFill, { width: `${plant.progress}%`, backgroundColor: plant.color }]} />
+                                    {/* Status Badge Over Image */}
+                                    <View style={styles.statusBadge}>
+                                        <ThemedText style={styles.statusText}>{plant.status}</ThemedText>
                                     </View>
-                                </View>
-                            </Pressable>
-                        ))}
+
+                                    {/* Info */}
+                                    <View style={styles.plantInfo}>
+                                        <ThemedText type="defaultSemiBold" style={styles.plantName}>{plant.name}</ThemedText>
+
+                                        {/* Mini Progress */}
+                                        <View style={styles.miniProgressTrack}>
+                                            <View style={[styles.miniProgressFill, { width: `${plant.progress}%`, backgroundColor: plant.color }]} />
+                                        </View>
+                                    </View>
+                                </Pressable>
+                            ))}
                     </View>
                 </View>
 

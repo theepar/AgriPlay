@@ -267,7 +267,7 @@ export default function HomeScreen() {
                     <MenuCard title="Rekomendasi" subtitle="Cek Tanaman" icon="leaf" color="#059669" onPress={() => router.push('/plant-recommendation')} />
                     <MenuCard title="Misi Harian" subtitle="Dapat XP" icon="trophy" color="#DC2626" onPress={() => router.push('/missions')} />
                     <MenuCard title="Virtual Garden" subtitle="Koleksi" icon="flower" color="#D97706" onPress={() => router.push('/virtual-garden')} />
-                    <MenuCard title="Agri AI" subtitle="Tanya Jawab" icon="chatbubbles" color="#2563EB" onPress={() => router.push('/chatbot')} />
+                    <MenuCard title="Agra AI" subtitle="Tanya Jawab" icon="chatbubbles" color="#2563EB" onPress={() => router.push('/chatbot')} />
                 </View>
 
                 <View style={{ height: 40 }} />

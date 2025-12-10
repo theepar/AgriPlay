@@ -25,7 +25,7 @@ const COLUMN_WIDTH = (width - (PADDING_HORIZONTAL * 2) - GAP) / 2;
 
 // --- DATA: MY PLANTS ---
 const MY_PROFILE = {
-    name: 'Agri Master',
+    name: 'Agra Master',
     plants: PLANTS_DATA.map((plant, index) => ({
         id: Number(plant.id),
         name: plant.name,

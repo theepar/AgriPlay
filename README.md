@@ -9,7 +9,7 @@ Agrarian adalah aplikasi mobile berbasis AI dan Machine Learning yang dirancang 
 - **My Garden Overview**: Lihat semua tanaman aktif dengan progress tracking
 - **Quick Access Menu**: Akses cepat ke semua fitur utama
 
-### 🤖 AgriAI Chatbot
+### 🤖 AgraAI Chatbot
 - **AI Assistant 24/7**: Tanya jawab seputar pertanian, hama, pupuk, dan perawatan
 - **Chat History**: Simpan riwayat percakapan untuk referensi nanti
 - **Smart Responses**: Mendapat jawaban cerdas berdasarkan konteks pertanyaan
