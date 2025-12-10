@@ -7,7 +7,15 @@
 // - Android Emulator: use 10.0.2.2 (localhost alias)
 // - iOS Simulator: use localhost
 // - Physical device: use your computer's IP address (e.g., 192.168.1.x)
-const ML_API_BASE_URL = 'http://10.0.2.2:8000';
+
+// ⚠️ GANTI DENGAN IP KOMPUTER KAMU! (jalankan 'ipconfig' di Command Prompt)
+// Contoh: 192.168.1.5, 192.168.0.100, dll.
+const YOUR_PC_IP = '10.60.1.74'; // IP komputer kamu
+
+// Pilih salah satu:
+const ML_API_BASE_URL = `http://${YOUR_PC_IP}:8000`;  // Untuk HP Fisik
+// const ML_API_BASE_URL = 'http://10.0.2.2:8000';    // Untuk Android Emulator
+// const ML_API_BASE_URL = 'http://localhost:8000';   // Untuk iOS Simulator
 
 // ============ TYPES ============
 
@@ -151,16 +159,20 @@ export async function checkApiHealth(): Promise<boolean> {
 // ============ CROP DESCRIPTIONS ============
 
 const CROP_DESCRIPTIONS: Record<string, string> = {
-    'onions and shallots': 'Bawang merah dan bawang bombay adalah tanaman umbi yang mudah ditanam dan cocok untuk pemula. Tanaman ini tahan terhadap berbagai kondisi cuaca dan membutuhkan sinar matahari penuh untuk pertumbuhan optimal.',
-    'rice': 'Padi adalah tanaman pangan utama yang membutuhkan banyak air dan iklim tropis. Cocok untuk lahan basah dengan sistem irigasi yang baik.',
-    'maize': 'Jagung adalah tanaman serbaguna yang dapat tumbuh di berbagai jenis tanah. Membutuhkan sinar matahari penuh dan penyiraman teratur.',
-    'cassava': 'Singkong adalah tanaman umbi yang sangat tahan kekeringan dan mudah dibudidayakan. Ideal untuk lahan marginal dengan perawatan minimal.',
+    'beans': 'Kacang-kacangan adalah tanaman yang kaya protein dan mudah ditanam. Cocok untuk pemula karena perawatannya minimal dan dapat memperbaiki kesuburan tanah secara alami.',
+    'carrots and turnips': 'Wortel dan lobak adalah tanaman umbi yang kaya nutrisi dan mudah dibudidayakan. Membutuhkan tanah gembur dan penyiraman teratur untuk hasil optimal.',
+    'chillies and peppers': 'Cabai dan paprika adalah tanaman yang produktif dan berbuah lebat. Cocok untuk ditanam di pot atau kebun dengan sinar matahari penuh.',
+    'cinnamon and cinnamon-tree flowers': 'Kayu manis adalah tanaman rempah bernilai tinggi yang berasal dari kulit pohon. Membutuhkan iklim tropis lembab dan waktu panen yang panjang.',
+    'cloves': 'Cengkeh adalah tanaman rempah aromatik yang sangat berharga. Membutuhkan iklim tropis dengan curah hujan tinggi dan tanah vulkanik yang subur.',
+    'cucumbers and gherkins': 'Mentimun dan acar adalah tanaman merambat yang cepat tumbuh dan produktif. Cocok untuk pemula dengan kebutuhan air yang cukup banyak.',
+    'eggplants': 'Terong adalah tanaman buah yang mudah ditanam dan berbuah lebat. Membutuhkan sinar matahari penuh dan penyiraman teratur.',
+    'leeks and other alliaceous vegetables': 'Daun bawang dan keluarga bawang-bawangan mudah ditanam dan serba guna di dapur. Cocok untuk berbagai kondisi tanah dan iklim.',
+    'onions and shallots': 'Bawang merah dan bawang bombay adalah tanaman umbi yang mudah ditanam dan cocok untuk pemula. Tanaman ini tahan terhadap berbagai kondisi cuaca.',
+    'pepper': 'Lada adalah tanaman rempah merambat yang bernilai ekonomi tinggi. Membutuhkan iklim tropis lembab dengan sistem penyangga yang baik.',
     'potatoes': 'Kentang adalah tanaman umbi yang produktif dan mudah ditanam. Membutuhkan tanah gembur dan suhu sejuk untuk hasil optimal.',
-    'soybeans': 'Kedelai adalah tanaman kacang-kacangan kaya protein yang juga memperbaiki kesuburan tanah. Cocok untuk rotasi tanaman.',
-    'vegetables': 'Sayuran hijau seperti bayam, kangkung, dan sawi mudah ditanam dan cepat panen. Ideal untuk kebun rumah dengan perawatan minimal.',
+    'tea leaves': 'Teh adalah tanaman perkebunan yang tumbuh baik di dataran tinggi. Membutuhkan iklim sejuk dengan curah hujan merata sepanjang tahun.',
     'tomatoes': 'Tomat adalah tanaman buah yang produktif dan serbaguna. Membutuhkan sinar matahari penuh dan penyangga untuk pertumbuhan vertikal.',
-    'chillies': 'Cabai adalah tanaman yang mudah ditanam dan berbuah lebat. Cocok untuk ditanam di pot atau kebun dengan sinar matahari penuh.',
-    'sugar cane': 'Tebu adalah tanaman industri yang membutuhkan iklim tropis dan banyak air. Masa tanam panjang tetapi hasil melimpah.',
+    'vanilla': 'Vanili adalah tanaman rempah merambat dengan nilai ekonomi sangat tinggi. Membutuhkan pohon penyangga, iklim tropis lembab, dan penyerbukan manual.',
 };
 
 /**

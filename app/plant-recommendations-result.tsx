@@ -2,13 +2,11 @@ import { ThemedText } from '@/components/themed-text';
 import { PLANTS_DATA } from '@/constants/plants';
 import { getCropDescription, getCropRecommendation, mapExperienceToAPI, mapSunConditionToAPI } from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
-    Dimensions,
     Platform,
     Pressable,
     ScrollView,
@@ -19,12 +17,8 @@ import {
     View,
 } from 'react-native';
 
-const { width } = Dimensions.get('window');
-
 // --- CONSTANTS ---
-const GAP = 16;
 const PADDING = 24;
-const COLUMN_WIDTH = (width - (PADDING * 2) - GAP) / 2;
 
 // Default mapping from local plant data
 const RECOMMENDED_PLANTS = PLANTS_DATA.map((plant, index) => ({
@@ -57,7 +51,6 @@ export default function PlantRecommendationResultScreen() {
     const [mlRecommendation, setMlRecommendation] = useState<string | null>(null);
     const [dynamicDescription, setDynamicDescription] = useState<string | null>(null);
     const [heroPlant, setHeroPlant] = useState(RECOMMENDED_PLANTS[0]);
-    const [otherPlants, setOtherPlants] = useState(RECOMMENDED_PLANTS.slice(1));
 
     // Call ML API on mount
     useEffect(() => {
@@ -91,7 +84,6 @@ export default function PlantRecommendationResultScreen() {
                 const matchedPlant = PLANT_NAME_MAP[response.plant.toLowerCase()];
                 if (matchedPlant) {
                     setHeroPlant({ ...matchedPlant, matchScore: 98 });
-                    setOtherPlants(RECOMMENDED_PLANTS.filter(p => p.id !== matchedPlant.id));
                 }
             }
         } catch (error) {
@@ -104,10 +96,6 @@ export default function PlantRecommendationResultScreen() {
 
     const handlePlantSelect = (plantId: number) => {
         router.push({ pathname: '/plant-detail', params: { id: plantId.toString() } });
-    };
-
-    const handleAddToGarden = (plantId: number) => {
-        router.push({ pathname: '/missions/[id]', params: { id: plantId.toString() } });
     };
 
     const handleShare = async () => {
@@ -203,36 +191,6 @@ export default function PlantRecommendationResultScreen() {
                     </View>
                 </Pressable>
 
-                {/* ALTERNATIVES SECTION */}
-                <View style={styles.sectionHeader}>
-                    <ThemedText type="subtitle" style={styles.sectionTitle}>Alternatif Lainnya</ThemedText>
-                    <ThemedText style={styles.sectionCount}>{otherPlants.length} Tanaman</ThemedText>
-                </View>
-
-                <View style={styles.grid}>
-                    {otherPlants.map((plant) => (
-                        <Pressable
-                            key={plant.id}
-                            style={styles.gridCard}
-                            onPress={() => handlePlantSelect(plant.id)}
-                        >
-                            <View style={styles.gridImageWrapper}>
-                                <Image source={{ uri: plant.image }} style={styles.gridImage} contentFit="cover" />
-                                <View style={[styles.miniBadge, { backgroundColor: plant.color }]}>
-                                    <ThemedText style={styles.miniBadgeText}>{plant.matchScore}%</ThemedText>
-                                </View>
-                            </View>
-
-                            <View style={styles.gridContent}>
-                                <ThemedText type="defaultSemiBold" style={styles.gridName} numberOfLines={1}>{plant.name}</ThemedText>
-                                <View style={styles.gridMetaRow}>
-                                    <Ionicons name="time-outline" size={12} color="#9CA3AF" />
-                                    <ThemedText style={styles.gridMetaText}>{plant.growthTime}</ThemedText>
-                                </View>
-                            </View>
-                        </Pressable>
-                    ))}
-                </View>
 
                 <View style={{ height: 40 }} />
             </ScrollView>
@@ -373,57 +331,6 @@ const styles = StyleSheet.create({
     },
     heroDesc: {
         fontSize: 14, color: '#4B5563', lineHeight: 22,
-    },
-
-    // ALTERNATIVES SECTION
-    sectionHeader: {
-        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
-        marginBottom: 16,
-    },
-    sectionTitle: {
-        fontSize: 18, fontWeight: '700', color: '#111827',
-    },
-    sectionCount: {
-        fontSize: 13, color: '#9CA3AF', fontWeight: '600', marginBottom: 2,
-    },
-
-    // GRID
-    grid: {
-        flexDirection: 'row', flexWrap: 'wrap', gap: GAP,
-    },
-    gridCard: {
-        width: COLUMN_WIDTH,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        overflow: 'hidden',
-        borderWidth: 1, borderColor: '#E5E7EB',
-        marginBottom: 8,
-    },
-    gridImageWrapper: {
-        height: 120, width: '100%', position: 'relative',
-        backgroundColor: '#F3F4F6',
-    },
-    gridImage: {
-        width: '100%', height: '100%',
-    },
-    miniBadge: {
-        position: 'absolute', top: 8, left: 8,
-        paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6,
-    },
-    miniBadgeText: {
-        color: '#FFF', fontSize: 10, fontWeight: '700',
-    },
-    gridContent: {
-        padding: 12,
-    },
-    gridName: {
-        fontSize: 14, fontWeight: '700', color: '#111827', marginBottom: 4,
-    },
-    gridMetaRow: {
-        flexDirection: 'row', alignItems: 'center', gap: 4,
-    },
-    gridMetaText: {
-        fontSize: 12, color: '#9CA3AF',
     },
 
     // ML API States
