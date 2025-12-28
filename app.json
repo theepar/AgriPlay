@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Agrarian",
-    "slug": "Agrarian",
+    "slug": "AgriPlay",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -54,7 +54,8 @@
       "router": {},
       "eas": {
         "projectId": "09056833-3766-49a6-be47-2d213cd12236"
-      }
+      },
+      "mlApiUrl": "https://theparr-agrarian-ml-api.hf.space"
     }
   }
 }

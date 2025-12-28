@@ -1,57 +1,57 @@
-# 🌱 Agrarian - Smart Farming Companion
+# Agrarian - Smart Farming Companion
 
-Agrarian adalah aplikasi mobile berbasis AI dan Machine Learning yang dirancang untuk membantu generasi muda dan petani pemula dalam dunia pertanian modern. Temukan cara bercocok tanam yang cerdas, efisien, dan produktif langsung dari genggaman Anda!
+Agrarian adala aplikasi mobile berbasis AI dan Machine Learning yang dirancang untuk membantu generasi muda dan petani pemula dalam dunia pertanian modern. Temukan cara bercocok tanam yang cerdas, efisien, dan produktif langsung dari genggaman Anda!
 
-## ✨ Fitur Utama
+## Fitur Utama
 
-### 🏠 Home Dashboard
-- **Weather Widget**: Menampilkan informasi cuaca real-time untuk lokasi Anda
-- **My Garden Overview**: Lihat semua tanaman aktif dengan progress tracking
-- **Quick Access Menu**: Akses cepat ke semua fitur utama
+### Home Dashboard
+- **Weather Widget**: Menampilkan informasi cuaca real-time untuk lokasi Anda.
+- **My Garden Overview**: Lihat semua tanaman aktif dengan pelacakan progres.
+- **Quick Access Menu**: Akses cepat ke semua fitur utama.
 
-### 🤖 AgraAI Chatbot
-- **AI Assistant 24/7**: Tanya jawab seputar pertanian, hama, pupuk, dan perawatan
-- **Chat History**: Simpan riwayat percakapan untuk referensi nanti
-- **Smart Responses**: Mendapat jawaban cerdas berdasarkan konteks pertanyaan
+### AgraAI Chatbot
+- **AI Assistant 24/7**: Tanya jawab seputar pertanian, hama, pupuk, dan perawatan.
+- **Chat History**: Simpan riwayat percakapan untuk referensi nanti.
+- **Smart Responses**: Mendapat jawaban cerdas berdasarkan konteks pertanyaan.
 
-### 🌿 Plant Recommendation System
-- **Wizard-based Flow**: Step-by-step guidance untuk pilih tanaman terbaik
-- **Location-based**: Rekomendasi berdasarkan lokasi, cuaca, dan kondisi lahan
-- **Experience Level**: Disesuaikan dengan tingkat pengalaman Anda (Pemula/Menengah/Ahli)
+### Plant Recommendation System
+- **Wizard-based Flow**: Panduan langkah demi langkah untuk memilih tanaman terbaik.
+- **Location-based**: Rekomendasi berdasarkan lokasi, cuaca, dan kondisi lahan.
+- **Experience Level**: Disesuaikan dengan tingkat pengalaman Anda (Pemula/Menengah/Ahli).
 
-### 🎯 Mission System (Daily Tasks)
-- **Daily Missions**: Task harian untuk merawat tanaman (siram, pupuk, cek hama)
-- **Streak System**: Bonus XP untuk konsistensi merawat tanaman
-- **Progress Tracking**: Lihat perkembangan tanaman dari hari ke hari
-- **Gamification**: Sistem level dan XP untuk motivasi lebih
+### Mission System (Daily Tasks)
+- **Daily Missions**: Tugas harian untuk merawat tanaman (siram, pupuk, cek hama).
+- **Streak System**: Bonus XP untuk konsistensi merawat tanaman.
+- **Progress Tracking**: Lihat perkembangan tanaman dari hari ke hari.
+- **Gamification**: Sistem level dan XP untuk motivasi lebih.
 
-### 🏡 Virtual Garden
-- **My Garden View**: Kelola semua tanaman Anda di satu tempat
-- **Explore Gardens**: Lihat kebun virtual petani lain untuk inspirasi
-- **Plant Cards**: Info lengkap setiap tanaman dengan visual menarik
+### Virtual Garden
+- **My Garden View**: Kelola semua tanaman Anda di satu tempat.
+- **Explore Gardens**: Lihat kebun virtual petani lain untuk inspirasi.
+- **Plant Cards**: Info lengkap setiap tanaman dengan visual menarik.
 
-### 👤 User Profile
-- **Achievement System**: Koleksi badge dan pencapaian
-- **Statistics**: Total tanaman, streak, level, dan XP
-- **Account Management**: Kelola profil dan preferensi
+### User Profile
+- **Achievement System**: Koleksi lencana dan pencapaian.
+- **Statistics**: Total tanaman, streak, level, dan XP.
+- **Account Management**: Kelola profil dan preferensi.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-- **Framework**: [React Native](https://reactnative.dev/) with [Expo](https://expo.dev/)
-- **Router**: [Expo Router](https://docs.expo.dev/router/introduction/) (File-based routing)
+- **Framework**: React Native dengan Expo
+- **Router**: Expo Router (File-based routing)
 - **TypeScript**: Type-safe development
-- **Styling**: 
+- **Styling**:
   - StyleSheet (Vanilla CSS-in-JS)
   - Themed Components (ThemedText, ThemedButton, ThemedView)
-- **UI/UX**: 
-  - Ionicons (@expo/vector-icons)
+- **UI/UX**:
+  - Ionicons
   - Expo Image (Optimized image loading)
   - Custom animations (LayoutAnimation)
 - **Storage**: AsyncStorage (Local data persistence)
 - **Maps/Location**: Expo Location
-- **WebView**: React Native WebView (untuk ML integration)
+- **WebView**: React Native WebView (untuk integrasi ML)
 
-## 🚀 Cara Menjalankan Aplikasi
+## Cara Menjalankan Aplikasi
 
 ### Prerequisites
 - Node.js (v16 atau lebih baru)
@@ -78,9 +78,9 @@ Agrarian adalah aplikasi mobile berbasis AI dan Machine Learning yang dirancang 
    - Scan QR Code dengan **Expo Go** di Android/iOS
    - Tekan `a` untuk Android Emulator
    - Tekan `i` untuk iOS Simulator
-   - Tekan `w` untuk Web Browser (limited features)
+   - Tekan `w` untuk Web Browser (fitur terbatas)
 
-## 📱 Struktur Folder
+## Struktur Folder
 
 ```
 Agrarian/
@@ -114,32 +114,22 @@ Agrarian/
 └── scripts/                      # Build & automation scripts
 ```
 
-## 🤖 ML API Integration
+## ML API Integration
 
 Aplikasi terintegrasi dengan ML API (FastAPI) untuk fitur cerdas:
 
 | Endpoint | Status | Deskripsi |
 |----------|--------|-----------|
-| `/crop_recommendation_fastapi` | ✅ **Aktif** | Rekomendasi tanaman berdasarkan lokasi, cuaca, dan preferensi |
-| `/yield_prediction_fastapi` | 🔧 **Maintenance** | Prediksi hasil panen (sedang dalam pengembangan) |
+| `/crop_recommendation_fastapi` | **Aktif** | Rekomendasi tanaman berdasarkan lokasi, cuaca, dan preferensi |
+| `/yield_prediction_fastapi` | **Maintenance** | Prediksi hasil panen (sedang dalam pengembangan) |
 
-Lihat dokumentasi lengkap di [`ml_agrarian/README.md`](./ml_agrarian/README.md)
+Lihat dokumentasi lengkap di `ml_agrarian/README.md`
 
-## 📝 Fitur Mendatang
-
-- [x] **ML Crop Recommendation**: Rekomendasi tanaman berbasis Machine Learning ✅
-- [ ] **ML Yield Prediction**: Prediksi hasil panen (maintenance)
-- [ ] **Push Notifications**: Reminder untuk watering & tasks
-- [ ] **Social Features**: Forum komunitas & share achievements
-- [ ] **Weather API**: Real-time weather dari OpenWeatherMap
-- [ ] **Marketplace**: Beli bibit, pupuk, dan tools
-- [ ] **AR Plant Preview**: Lihat tanaman di ruang nyata (AR)
-
-## 🐛 Debugging & Development
+## Debugging & Development
 
 ### Reset Development Data
 - **Reset Onboarding**: Tekan tombol "Log Out (Dev)" di Home untuk reset
-- **Clear AsyncStorage**: 
+- **Clear AsyncStorage**:
   ```bash
   npx expo start --clear
   ```
@@ -149,13 +139,14 @@ Lihat dokumentasi lengkap di [`ml_agrarian/README.md`](./ml_agrarian/README.md)
 2. **Module not found**: Jalankan `npm install` lagi
 3. **Android build failed**: Pastikan ANDROID_HOME sudah di-set
 
-## 📄 License
+## License
 
 Aplikasi ini dibuat untuk tujuan edukasi dan demonstrasi.
 
-Versi: 1.0.0 (Beta)  
+Versi: 1.0.0 (Beta)
 Last Updated: Desember 2025
 
-## 🙏 Credits
+## Credits
 
 - **ML Model Agrarian**: [fadhilr2/ml_model_agrarian](https://github.com/fadhilr2/ml_model_agrarian) - Machine Learning model untuk rekomendasi tanaman dan prediksi hasil panen
+
