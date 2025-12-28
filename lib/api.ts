@@ -3,13 +3,15 @@
 // - iOS Simulator: use localhost
 // - Physical device: use your computer's IP address (e.g., 192.168.1.x)
 
-// 🚀 PRODUCTION ML API (Hugging Face Spaces - Free 24/7)
-const ML_API_BASE_URL = 'https://theparr-agrarian-ml-api.hf.space';
+import Constants from 'expo-constants';
 
-// 🔧 DEVELOPMENT (Uncomment salah satu jika testing local):
-// const YOUR_PC_IP = '192.168.18.138';
-// const ML_API_BASE_URL = `http://${YOUR_PC_IP}:8000`;  // HP Fisik
-// const ML_API_BASE_URL = 'http://10.0.2.2:8000';      // Android Emulator
+// 🚀 PRODUCTION ML API (configured in app.json)
+// Edit ML API URL di: app.json -> extra -> mlApiUrl
+const ML_API_BASE_URL = Constants.expoConfig?.extra?.mlApiUrl || 'https://theparr-agrarian-ml-api.hf.space';
+
+// Log untuk debugging (hapus di production)
+console.log('🌾 ML API URL:', ML_API_BASE_URL);
+
 
 
 // ============ TYPES ============

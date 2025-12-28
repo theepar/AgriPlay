@@ -266,8 +266,8 @@ export default function HomeScreen() {
                 <View style={[styles.menuGrid, styles.containerPadding]}>
                     <MenuCard title="Rekomendasi" subtitle="Cek Tanaman" icon="leaf" color="#059669" onPress={() => router.push('/plant-recommendation')} />
                     <MenuCard title="Misi Harian" subtitle="Dapat XP" icon="trophy" color="#DC2626" onPress={() => router.push('/missions')} />
-                    <MenuCard title="Virtual Garden" subtitle="Koleksi" icon="flower" color="#D97706" onPress={() => router.push('/virtual-garden')} />
-                    <MenuCard title="Agra AI" subtitle="Tanya Jawab" icon="chatbubbles" color="#2563EB" onPress={() => router.push('/chatbot')} />
+                    <MenuCard title="Virtual Garden" subtitle="Koleksi" icon="flower" color="#D97706" onPress={() => router.push('/virtual-garden')} fullWidth />
+                    {/* <MenuCard title="Agra AI" subtitle="Tanya Jawab" icon="chatbubbles" color="#2563EB" onPress={() => router.push('/chatbot')} /> */}
                 </View>
 
                 <View style={{ height: 40 }} />
@@ -277,8 +277,8 @@ export default function HomeScreen() {
 }
 
 // Helper Component for Menu Grid
-const MenuCard = ({ title, subtitle, icon, color, onPress }: any) => (
-    <Pressable style={styles.menuCard} onPress={onPress}>
+const MenuCard = ({ title, subtitle, icon, color, onPress, fullWidth }: any) => (
+    <Pressable style={[styles.menuCard, fullWidth && styles.menuCardFullWidth]} onPress={onPress}>
         <View style={[styles.menuIconBg, { backgroundColor: color + '15' }]}>
             <Ionicons name={icon} size={28} color={color} />
         </View>
@@ -538,6 +538,9 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.08,
         shadowRadius: 8,
         elevation: 3,
+    },
+    menuCardFullWidth: {
+        width: '100%',
     },
     menuIconBg: {
         width: 48,

@@ -193,6 +193,15 @@ export default function PlantRecommendationResultScreen() {
                             </View>
                         </View>
 
+                        {/* Start Planting Button (Dummy) */}
+                        <TouchableOpacity
+                            style={styles.startPlantingButton}
+                            onPress={() => { }}
+                        >
+                            <Ionicons name="leaf-outline" size={20} color="#059669" />
+                            <ThemedText style={styles.startPlantingButtonText}>Mulai Bertanam Tanaman Ini</ThemedText>
+                        </TouchableOpacity>
+
                         {/* Back to Home Button */}
                         <TouchableOpacity
                             style={styles.homeButton}
@@ -406,5 +415,23 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '700',
         color: '#FFF',
+    },
+    startPlantingButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#ECFDF5',
+        borderWidth: 2,
+        borderColor: '#059669',
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        borderRadius: 16,
+        gap: 10,
+        marginBottom: 12,
+    },
+    startPlantingButtonText: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#059669',
     },
 });
