@@ -1,6 +1,6 @@
 # Agrarian - Smart Farming Companion
 
-Agrarian adala aplikasi mobile berbasis AI dan Machine Learning yang dirancang untuk membantu generasi muda dan petani pemula dalam dunia pertanian modern. Temukan cara bercocok tanam yang cerdas, efisien, dan produktif langsung dari genggaman Anda!
+Agrarian adalah aplikasi mobile berbasis AI dan Machine Learning yang dirancang untuk membantu generasi muda dan petani pemula dalam dunia pertanian modern. Temukan cara bercocok tanam yang cerdas, efisien, dan produktif langsung dari genggaman Anda!
 
 ## Fitur Utama
 
