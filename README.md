@@ -106,6 +106,7 @@ Agrarian/
 │   └── fonts/
 ├── components/                   # Reusable components
 │   ├── avatar.tsx                # Avatar inisial nama
+│   ├── not-found-state.tsx       # Tampilan "tidak ditemukan"
 │   ├── themed-text.tsx           # Themed text component
 │   ├── themed-button.tsx         # Themed button component
 │   └── themed-view.tsx           # Themed view component
@@ -118,7 +119,11 @@ Agrarian/
 │   ├── garden-store.tsx          # Progres misi, XP, level (tersimpan)
 │   ├── session.tsx               # Onboarding & sesi login (tersimpan)
 │   ├── http.ts                   # fetch + timeout
+│   ├── navigation.ts             # goBack dengan fallback (deep link / URL web)
+│   ├── alert.ts                  # Alert lintas platform (native & web)
 │   └── weather.ts                # Cuaca Open-Meteo
+├── __tests__/, lib/__tests__/    # Test Jest (unit & layar)
+├── e2e/                          # Test Playwright (alur utama)
 ├── ml_agrarian/                  # ML API (FastAPI) + training scripts + tests
 ├── docs/BREAKDOWN.md             # Analisis proyek & roadmap
 └── scripts/                      # Build & automation scripts
@@ -141,8 +146,14 @@ Lihat dokumentasi lengkap di `ml_agrarian/README.md`
 ```bash
 npm run lint        # ESLint
 npm run typecheck   # TypeScript
-cd ml_agrarian && python -m pytest   # test ML API
+npm test            # Jest: logika & layar
+npm run e2e         # Playwright: alur utama di build web (butuh browser Playwright)
+cd ml_agrarian && pip install -r requirements-dev.txt && python -m pytest   # test ML API
 ```
+
+`npm run e2e` membangun versi web (`expo export`) lalu menjalankannya dengan `expo serve`.
+API ML dan cuaca di-mock, jadi tidak butuh internet. Jika browser belum terpasang:
+`npx playwright install chromium`.
 
 ### Reset Development Data
 - **Keluar akun**: Profil → tombol "Keluar"
