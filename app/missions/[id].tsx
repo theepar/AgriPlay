@@ -7,8 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-    Platform,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -19,6 +19,7 @@ import {
 
 
 export default function MissionDetailScreen() {
+    const insets = useSafeAreaInsets();
     const { id } = useLocalSearchParams();
 
     const { taskStatus } = useGarden();
@@ -33,15 +34,15 @@ export default function MissionDetailScreen() {
             <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
             <View style={styles.headerImageContainer}>
-                <Image source={{ uri: plant.image }} style={styles.headerImage} contentFit="cover" />
+                <Image accessibilityLabel={`Foto tanaman ${plant.name}`} source={{ uri: plant.image }} style={styles.headerImage} contentFit="cover" />
                 <LinearGradient
                     colors={['rgba(0,0,0,0.4)', 'transparent', 'rgba(0,0,0,0.1)']}
                     style={StyleSheet.absoluteFillObject}
                 />
 
                 {/* Navbar */}
-                <View style={styles.navBar}>
-                    <TouchableOpacity onPress={() => goBack('/missions')} style={styles.navBtn} accessibilityRole="button" accessibilityLabel="Kembali">
+                <View style={[styles.navBar, { top: insets.top + 8 }]}>
+                    <TouchableOpacity hitSlop={4} onPress={() => goBack('/missions')} style={styles.navBtn} accessibilityRole="button" accessibilityLabel="Kembali">
                         <Ionicons name="arrow-back" size={24} color="#FFF" />
                     </TouchableOpacity>
                 </View>
@@ -58,11 +59,11 @@ export default function MissionDetailScreen() {
                         <View style={styles.pillRow}>
                             <View style={[styles.pill, { backgroundColor: '#FEF3C7' }]}>
                                 <Ionicons name="bar-chart" size={12} color="#D97706" />
-                                <ThemedText style={[styles.pillText, { color: '#D97706' }]}>{plant.difficulty}</ThemedText>
+                                <ThemedText style={[styles.pillText, { color: '#B45309' }]}>{plant.difficulty}</ThemedText>
                             </View>
                             <View style={[styles.pill, { backgroundColor: '#ECFDF5' }]}>
-                                <Ionicons name="leaf" size={12} color="#059669" />
-                                <ThemedText style={[styles.pillText, { color: '#059669' }]}>{plant.latin}</ThemedText>
+                                <Ionicons name="leaf" size={12} color="#047857" />
+                                <ThemedText style={[styles.pillText, { color: '#047857' }]}>{plant.latin}</ThemedText>
                             </View>
                         </View>
                         <ThemedText type="title" style={styles.title}>{plant.name}</ThemedText>
@@ -75,7 +76,7 @@ export default function MissionDetailScreen() {
                             <View>
                                 <ThemedText style={styles.progressLabel}>Total Progres</ThemedText>
                                 <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
-                                    <ThemedText type="title" style={styles.progressValue}>{percent}%</ThemedText>
+                                    <ThemedText type="title" style={styles.progressValue} accessibilityRole="text">{percent}%</ThemedText>
                                     <ThemedText style={styles.progressSub}>Selesai</ThemedText>
                                 </View>
                             </View>
@@ -117,7 +118,7 @@ export default function MissionDetailScreen() {
                                     </View>
 
                                     {/* Right: Content Card */}
-                                    <TouchableOpacity
+                                    <TouchableOpacity accessibilityRole="button" accessibilityState={{ disabled: status === 'locked' }}
                                         style={[
                                             styles.taskCard,
                                             status === 'active' && styles.taskCardActive,
@@ -140,7 +141,7 @@ export default function MissionDetailScreen() {
                                                     +{task.xp} XP
                                                 </ThemedText>
                                             </View>
-                                            {status === 'active' && <Ionicons name="chevron-forward" size={16} color="#059669" />}
+                                            {status === 'active' && <Ionicons name="chevron-forward" size={16} color="#047857" />}
                                         </View>
                                     </TouchableOpacity>
                                 </View>
@@ -176,7 +177,6 @@ const styles = StyleSheet.create({
     },
     navBar: {
         position: 'absolute',
-        top: Platform.OS === 'ios' ? 50 : 30,
         width: '100%',
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -243,19 +243,19 @@ const styles = StyleSheet.create({
         fontSize: 24, fontWeight: '800', color: '#111827',
     },
     progressSub: {
-        fontSize: 12, color: '#9CA3AF', fontWeight: '500',
+        fontSize: 12, color: '#6B7280', fontWeight: '500',
     },
     xpCircle: {
         alignItems: 'center', justifyContent: 'center',
     },
     xpText: {
-        fontSize: 10, fontWeight: '700', color: '#D97706', marginTop: 2,
+        fontSize: 10, fontWeight: '700', color: '#B45309', marginTop: 2,
     },
     progressBarBg: {
         height: 8, backgroundColor: '#F3F4F6', borderRadius: 4, overflow: 'hidden',
     },
     progressBarFill: {
-        height: '100%', backgroundColor: '#059669', borderRadius: 4,
+        height: '100%', backgroundColor: '#047857', borderRadius: 4,
     },
 
     divider: {
@@ -284,13 +284,13 @@ const styles = StyleSheet.create({
         alignItems: 'center', justifyContent: 'center', zIndex: 1,
     },
     dotCompleted: {
-        backgroundColor: '#059669', borderColor: '#059669',
+        backgroundColor: '#047857', borderColor: '#047857',
     },
     dotActive: {
-        borderColor: '#059669', backgroundColor: '#FFF',
+        borderColor: '#047857', backgroundColor: '#FFF',
     },
     dotActiveInner: {
-        width: 8, height: 8, borderRadius: 4, backgroundColor: '#059669',
+        width: 8, height: 8, borderRadius: 4, backgroundColor: '#047857',
     },
     dotLocked: {
         backgroundColor: '#F3F4F6', borderColor: '#F3F4F6',
@@ -307,9 +307,9 @@ const styles = StyleSheet.create({
         shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 4, elevation: 1,
     },
     taskCardActive: {
-        borderColor: '#059669', borderWidth: 1,
+        borderColor: '#047857', borderWidth: 1,
         backgroundColor: '#ECFDF5', // Light green tint
-        shadowColor: '#059669', shadowOpacity: 0.1,
+        shadowColor: '#047857', shadowOpacity: 0.1,
     },
     taskCardLocked: {
         backgroundColor: '#F9FAFB', borderColor: 'transparent', shadowOpacity: 0,
@@ -327,6 +327,6 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.03)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
     },
     xpChipText: {
-        fontSize: 11, fontWeight: '700', color: '#059669',
+        fontSize: 11, fontWeight: '700', color: '#047857',
     },
 });

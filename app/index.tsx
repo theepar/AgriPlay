@@ -10,10 +10,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { Redirect, router } from 'expo-router';
 import { useEffect, useState, type ComponentProps } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     ActivityIndicator,
     Dimensions,
-    Platform,
     Pressable,
     ScrollView,
     StatusBar,
@@ -64,6 +64,7 @@ export default function IndexRoute() {
 }
 
 function HomeScreen({ userName }: { userName: string }) {
+    const insets = useSafeAreaInsets();
     const { taskStatus } = useGarden();
     const myPlants = PLANTS_DATA.slice(0, 3).map(plant => {
         const { percent, activeTask } = getPlantProgress(plant, taskStatus);
@@ -108,7 +109,7 @@ function HomeScreen({ userName }: { userName: string }) {
 
             <View style={styles.fixedHeaderContainer}>
                 <LinearGradient
-                    colors={['#064E3B', '#059669', '#10B981']}
+                    colors={['#064E3B', '#047857', '#10B981']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.fixedHeaderBackground}
@@ -117,13 +118,13 @@ function HomeScreen({ userName }: { userName: string }) {
                 {/* Dekorasi lingkaran transparan */}
                 <View style={styles.heroAccentCircle} />
 
-                <View style={styles.headerContentWrapper}>
+                <View style={[styles.headerContentWrapper, { paddingTop: insets.top + 16 }]}>
                     <View style={styles.header}>
                         <View style={{ flex: 1, marginRight: 12 }}>
                             <ThemedText style={styles.greeting} numberOfLines={1}>Halo, {userName}! 🌱</ThemedText>
                             <ThemedText style={styles.subGreeting}>Siap merawat tanamanmu hari ini?</ThemedText>
                         </View>
-                        <Pressable style={styles.profileBtn} onPress={() => router.push('/profile')}>
+                        <Pressable accessibilityRole="button" style={styles.profileBtn} onPress={() => router.push('/profile')}>
                             <Avatar name={userName} size={44} />
                         </Pressable>
                     </View>
@@ -135,8 +136,15 @@ function HomeScreen({ userName }: { userName: string }) {
                         disabled={weatherState.status !== 'unavailable'}
                         accessibilityRole={weatherState.status === 'unavailable' ? 'button' : undefined}
                         accessibilityHint={weatherState.status === 'unavailable' ? 'Muat ulang cuaca' : undefined}
+                        accessibilityLabel={
+                            weatherState.status === 'ready'
+                                ? `Cuaca ${weatherState.weather.temp} derajat, ${weatherState.weather.description}, ${weatherState.location}`
+                                : weatherState.status === 'unavailable'
+                                    ? weatherState.message
+                                    : 'Memuat cuaca'
+                        }
                     >
-                        {weatherState.status === 'loading' && <ActivityIndicator size="large" color="#059669" />}
+                        {weatherState.status === 'loading' && <ActivityIndicator size="large" color="#047857" />}
                         {weatherState.status === 'ready' && (
                             <>
                                 <View style={{ flex: 1 }}>
@@ -170,8 +178,8 @@ function HomeScreen({ userName }: { userName: string }) {
 
                 {/* 3. Active Plants Section */}
                 <View style={[styles.sectionHeader, styles.containerPadding]}>
-                    <ThemedText style={styles.sectionTitle}>Kebun Saya</ThemedText>
-                    <Pressable onPress={() => router.push('/virtual-garden')}>
+                    <ThemedText style={styles.sectionTitle} accessibilityRole="header">Kebun Saya</ThemedText>
+                    <Pressable accessibilityRole="button" hitSlop={12} onPress={() => router.push('/virtual-garden')}>
                         <ThemedText style={styles.seeAll}>Lihat Semua</ThemedText>
                     </Pressable>
                 </View>
@@ -182,13 +190,14 @@ function HomeScreen({ userName }: { userName: string }) {
                     contentContainerStyle={styles.plantsScroll}
                 >
                     {myPlants.map((plant) => (
-                        <Pressable
+                        <Pressable accessibilityRole="button"
                             key={plant.id}
                             style={styles.plantCard}
                             onPress={() => handlePlantDetail(plant.id)}
+                            accessibilityLabel={`${plant.name}, progres ${plant.progress} persen, ${plant.nextStep}`}
                         >
                             <View style={styles.imageWrapper}>
-                                <Image source={{ uri: plant.image }} style={styles.plantImage} contentFit="cover" />
+                                <Image alt="" source={{ uri: plant.image }} style={styles.plantImage} contentFit="cover" />
                                 <LinearGradient
                                     colors={['transparent', 'rgba(0,0,0,0.7)']}
                                     style={styles.imageOverlay}
@@ -216,10 +225,10 @@ function HomeScreen({ userName }: { userName: string }) {
                 </ScrollView>
 
                 {/* 4. Main Menu Grid */}
-                <ThemedText style={[styles.sectionTitle, styles.containerPadding, { marginTop: 24, marginBottom: 16 }]}>Fitur Utama</ThemedText>
+                <ThemedText accessibilityRole="header" style={[styles.sectionTitle, styles.containerPadding, { marginTop: 24, marginBottom: 16 }]}>Fitur Utama</ThemedText>
 
                 <View style={[styles.menuGrid, styles.containerPadding]}>
-                    <MenuCard title="Rekomendasi" subtitle="Cek Tanaman" icon="leaf" color="#059669" onPress={() => router.push('/plant-recommendation')} />
+                    <MenuCard title="Rekomendasi" subtitle="Cek Tanaman" icon="leaf" color="#047857" onPress={() => router.push('/plant-recommendation')} />
                     <MenuCard title="Misi Harian" subtitle="Dapat XP" icon="trophy" color="#DC2626" onPress={() => router.push('/missions')} />
                     <MenuCard title="Virtual Garden" subtitle="Koleksi" icon="flower" color="#D97706" onPress={() => router.push('/virtual-garden')} fullWidth />
                     {/* <MenuCard title="Agra AI" subtitle="Tanya Jawab" icon="chatbubbles" color="#2563EB" onPress={() => router.push('/chatbot')} /> */}
@@ -242,7 +251,7 @@ interface MenuCardProps {
 }
 
 const MenuCard = ({ title, subtitle, icon, color, onPress, fullWidth }: MenuCardProps) => (
-    <Pressable style={[styles.menuCard, fullWidth && styles.menuCardFullWidth]} onPress={onPress}>
+    <Pressable accessibilityRole="button" style={[styles.menuCard, fullWidth && styles.menuCardFullWidth]} onPress={onPress}>
         <View style={[styles.menuIconBg, { backgroundColor: color + '15' }]}>
             <Ionicons name={icon} size={28} color={color} />
         </View>
@@ -284,7 +293,6 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFillObject, // Gradient memenuhi container fixed
     },
     headerContentWrapper: {
-        paddingTop: Platform.OS === 'ios' ? 60 : 50, // Mengatasi status bar
         paddingHorizontal: 24,
     },
     heroAccentCircle: {
@@ -393,7 +401,7 @@ const styles = StyleSheet.create({
     seeAll: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#059669',
+        color: '#047857',
     },
 
     // Plant Cards
@@ -457,7 +465,7 @@ const styles = StyleSheet.create({
     },
     plantDate: {
         fontSize: 12,
-        color: '#9CA3AF',
+        color: '#6B7280',
         marginBottom: 16,
     },
     progressContainer: {

@@ -9,9 +9,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import type { ComponentProps } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     Dimensions,
-    Platform,
     Pressable,
     ScrollView,
     StatusBar,
@@ -39,6 +39,7 @@ interface Badge {
 }
 
 export default function ProfileScreen() {
+    const insets = useSafeAreaInsets();
     const { user, signOut } = useSession();
     const { xp, taskStatus } = useGarden();
     const { level, xpIntoLevel, xpForNextLevel } = getLevelInfo(xp);
@@ -63,9 +64,9 @@ export default function ProfileScreen() {
 
     // Pencapaian dihitung dari progres nyata, bukan data statis.
     const badges: Badge[] = [
-        { id: 'care', icon: 'water', color: '#3B82F6', bg: '#EFF6FF', name: 'Rajin Merawat', unlocked: completedTasks >= 5 },
-        { id: 'harvest', icon: 'leaf', color: '#10B981', bg: '#ECFDF5', name: 'Green Thumb', unlocked: plants.some(p => p.progress === 100) },
-        { id: 'level', icon: 'trophy', color: '#F59E0B', bg: '#FFFBEB', name: 'Juara (Lv 5)', unlocked: level >= 5 },
+        { id: 'care', icon: 'water', color: '#1D4ED8', bg: '#EFF6FF', name: 'Rajin Merawat', unlocked: completedTasks >= 5 },
+        { id: 'harvest', icon: 'leaf', color: '#047857', bg: '#ECFDF5', name: 'Green Thumb', unlocked: plants.some(p => p.progress === 100) },
+        { id: 'level', icon: 'trophy', color: '#B45309', bg: '#FFFBEB', name: 'Juara (Lv 5)', unlocked: level >= 5 },
     ];
 
     const handleLogout = async () => {
@@ -85,12 +86,12 @@ export default function ProfileScreen() {
 
                 {/* 1. HEADER & COVER */}
                 <View style={styles.headerContainer}>
-                    <Image source={{ uri: COVER_IMAGE }} style={styles.coverImage} contentFit="cover" />
+                    <Image alt="" source={{ uri: COVER_IMAGE }} style={styles.coverImage} contentFit="cover" />
                     <View style={styles.overlay} />
 
                     {/* Navbar Absolute */}
-                    <View style={styles.navBar}>
-                        <TouchableOpacity onPress={() => goBack()} style={styles.navButton} accessibilityRole="button" accessibilityLabel="Kembali">
+                    <View style={[styles.navBar, { top: insets.top + 8 }]}>
+                        <TouchableOpacity hitSlop={4} onPress={() => goBack()} style={styles.navButton} accessibilityRole="button" accessibilityLabel="Kembali">
                             <Ionicons name="arrow-back" size={24} color="#FFF" />
                         </TouchableOpacity>
                     </View>
@@ -103,7 +104,10 @@ export default function ProfileScreen() {
                             <Avatar name={name} size={88} style={styles.avatar} />
                         </View>
                         <View style={styles.headerActions}>
-                            <TouchableOpacity style={styles.editProfileBtn}>
+                            <TouchableOpacity accessibilityRole="button" hitSlop={8}
+                                style={styles.editProfileBtn}
+                                onPress={() => showAlert('Segera Hadir', 'Fitur edit profil sedang dikembangkan.')}
+                            >
                                 <ThemedText style={styles.editProfileText}>Edit Profil</ThemedText>
                             </TouchableOpacity>
                         </View>
@@ -167,7 +171,7 @@ export default function ProfileScreen() {
                 <View style={styles.sectionContainer}>
                     <View style={styles.sectionHeader}>
                         <ThemedText type="subtitle" style={styles.sectionTitle}>Kebun Saya</ThemedText>
-                        <TouchableOpacity onPress={() => router.push('/virtual-garden')}>
+                        <TouchableOpacity accessibilityRole="button" hitSlop={12} onPress={() => router.push('/virtual-garden')}>
                             <ThemedText style={styles.seeAll}>Lihat Semua</ThemedText>
                         </TouchableOpacity>
                     </View>
@@ -177,13 +181,13 @@ export default function ProfileScreen() {
                             .sort((a, b) => b.progress - a.progress)
                             .slice(0, 2)
                             .map((plant) => (
-                                <Pressable
+                                <Pressable accessibilityRole="button"
                                     key={plant.id}
                                     style={styles.plantCard}
                                     onPress={() => router.push({ pathname: '/missions/[id]', params: { id: plant.id } })}
                                 >
                                     {/* Image */}
-                                    <Image source={{ uri: plant.image }} style={styles.plantImage} contentFit="cover" />
+                                    <Image alt="" source={{ uri: plant.image }} style={styles.plantImage} contentFit="cover" />
 
                                     {/* Status Badge Over Image */}
                                     <View style={styles.statusBadge}>
@@ -206,8 +210,8 @@ export default function ProfileScreen() {
 
                 {/* 5. LOGOUT */}
                 <View style={styles.sectionContainer}>
-                    <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-                        <Ionicons name="log-out-outline" size={20} color="#DC2626" />
+                    <TouchableOpacity accessibilityLabel="Keluar" accessibilityRole="button" style={styles.logoutBtn} onPress={handleLogout}>
+                        <Ionicons name="log-out-outline" size={20} color="#B91C1C" />
                         <ThemedText style={styles.logoutText}>Keluar</ThemedText>
                     </TouchableOpacity>
                 </View>
@@ -239,7 +243,6 @@ const styles = StyleSheet.create({
     },
     navBar: {
         position: 'absolute',
-        top: Platform.OS === 'ios' ? 50 : 30,
         left: 0,
         right: 0,
         flexDirection: 'row',
@@ -301,7 +304,7 @@ const styles = StyleSheet.create({
     },
     handle: {
         fontSize: 14,
-        color: '#059669',
+        color: '#047857',
         fontWeight: '600',
         marginBottom: 8,
     },
@@ -360,7 +363,7 @@ const styles = StyleSheet.create({
     xpValue: {
         fontSize: 13,
         fontWeight: '600',
-        color: '#059669',
+        color: '#047857',
     },
     xpTrack: {
         height: 8,
@@ -370,7 +373,7 @@ const styles = StyleSheet.create({
     },
     xpFill: {
         height: '100%',
-        backgroundColor: '#059669',
+        backgroundColor: '#047857',
         borderRadius: 4,
     },
 
@@ -399,7 +402,7 @@ const styles = StyleSheet.create({
     seeAll: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#059669',
+        color: '#047857',
     },
 
     // BADGES
@@ -493,6 +496,6 @@ const styles = StyleSheet.create({
     logoutText: {
         fontSize: 15,
         fontWeight: '600',
-        color: '#DC2626',
+        color: '#B91C1C',
     },
 });

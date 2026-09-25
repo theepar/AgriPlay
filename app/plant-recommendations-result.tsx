@@ -6,9 +6,9 @@ import { showAlert } from '@/lib/alert';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     ActivityIndicator,
-    Platform,
     ScrollView,
     Share,
     StatusBar,
@@ -31,6 +31,7 @@ type ResultState =
     | { status: 'success'; crop: CropInfo };
 
 export default function PlantRecommendationResultScreen() {
+    const insets = useSafeAreaInsets();
     const params = useLocalSearchParams<{
         location?: string;
         experience?: string;
@@ -103,7 +104,7 @@ export default function PlantRecommendationResultScreen() {
             <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
 
             {/* HEADER */}
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
                 <TouchableOpacity onPress={() => goBack('/plant-recommendation')} style={styles.headerBtn} accessibilityRole="button" accessibilityLabel="Kembali">
                     <Ionicons name="arrow-back" size={24} color="#111827" />
                 </TouchableOpacity>
@@ -124,7 +125,7 @@ export default function PlantRecommendationResultScreen() {
                 {/* LOADING STATE */}
                 {result.status === 'loading' && (
                     <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color="#059669" />
+                        <ActivityIndicator size="large" color="#047857" />
                         <ThemedText style={styles.loadingText}>Menganalisis data iklim lokasi...</ThemedText>
                         <ThemedText style={styles.loadingHint}>
                             Proses pertama bisa memakan waktu hingga 1 menit.
@@ -134,19 +135,19 @@ export default function PlantRecommendationResultScreen() {
 
                 {/* ERROR STATE */}
                 {result.status === 'error' && (
-                    <View style={styles.errorCard}>
+                    <View style={styles.errorCard} accessibilityRole="alert" accessibilityLiveRegion="polite">
                         <View style={styles.errorIconBg}>
                             <Ionicons name="cloud-offline-outline" size={32} color="#B45309" />
                         </View>
                         <ThemedText type="subtitle" style={styles.errorTitle}>Rekomendasi Gagal Dimuat</ThemedText>
                         <ThemedText style={styles.errorText}>{result.message}</ThemedText>
                         {hasLocation ? (
-                            <TouchableOpacity style={styles.homeButton} onPress={handleRetry}>
+                            <TouchableOpacity accessibilityLabel="Coba Lagi" accessibilityRole="button" style={styles.homeButton} onPress={handleRetry}>
                                 <Ionicons name="refresh" size={20} color="#FFF" />
                                 <ThemedText style={styles.homeButtonText}>Coba Lagi</ThemedText>
                             </TouchableOpacity>
                         ) : (
-                            <TouchableOpacity style={styles.homeButton} onPress={() => router.replace('/plant-recommendation')}>
+                            <TouchableOpacity accessibilityLabel="Pilih Lokasi" accessibilityRole="button" style={styles.homeButton} onPress={() => router.replace('/plant-recommendation')}>
                                 <Ionicons name="location-outline" size={20} color="#FFF" />
                                 <ThemedText style={styles.homeButtonText}>Pilih Lokasi</ThemedText>
                             </TouchableOpacity>
@@ -207,22 +208,22 @@ export default function PlantRecommendationResultScreen() {
 
                         {/* Start Planting Button */}
                         {missionPlantId ? (
-                            <TouchableOpacity
+                            <TouchableOpacity accessibilityLabel="Mulai Misi Tanaman Ini" accessibilityRole="button"
                                 style={styles.startPlantingButton}
                                 onPress={() => router.push({ pathname: '/missions/[id]', params: { id: missionPlantId } })}
                             >
-                                <Ionicons name="leaf-outline" size={20} color="#059669" />
+                                <Ionicons name="leaf-outline" size={20} color="#047857" />
                                 <ThemedText style={styles.startPlantingButtonText}>Mulai Misi Tanaman Ini</ThemedText>
                             </TouchableOpacity>
                         ) : (
-                            <TouchableOpacity style={styles.startPlantingButton} onPress={() => router.push('/missions')}>
-                                <Ionicons name="trophy-outline" size={20} color="#059669" />
+                            <TouchableOpacity accessibilityLabel="Lihat Misi yang Tersedia" accessibilityRole="button" style={styles.startPlantingButton} onPress={() => router.push('/missions')}>
+                                <Ionicons name="trophy-outline" size={20} color="#047857" />
                                 <ThemedText style={styles.startPlantingButtonText}>Lihat Misi yang Tersedia</ThemedText>
                             </TouchableOpacity>
                         )}
 
                         {/* Back to Home Button */}
-                        <TouchableOpacity
+                        <TouchableOpacity accessibilityLabel="Kembali ke Beranda" accessibilityRole="button"
                             style={styles.homeButton}
                             onPress={() => router.dismissTo('/')}
                         >
@@ -254,7 +255,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: PADDING,
-        paddingTop: Platform.OS === 'ios' ? 60 : 40,
         paddingBottom: 16,
         backgroundColor: '#F9FAFB',
         zIndex: 10,
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
         fontSize: 15, color: '#6B7280', lineHeight: 22,
     },
     highlight: {
-        fontWeight: '700', color: '#059669',
+        fontWeight: '700', color: '#047857',
     },
 
     // HERO CARD
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         overflow: 'hidden',
         marginBottom: 32,
-        shadowColor: '#059669', // Shadow warna hijau tipis
+        shadowColor: '#047857', // Shadow warna hijau tipis
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.1,
         shadowRadius: 20,
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     aiBadge: {
-        backgroundColor: '#059669',
+        backgroundColor: '#047857',
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 20,
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
         flex: 1, fontSize: 13, color: '#92400E', lineHeight: 19,
     },
     sourceNote: {
-        fontSize: 12, color: '#9CA3AF', lineHeight: 18,
+        fontSize: 12, color: '#6B7280', lineHeight: 18,
     },
 
     // LOADING & ERROR
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
     },
     loadingHint: {
         fontSize: 12,
-        color: '#9CA3AF',
+        color: '#6B7280',
         textAlign: 'center',
     },
     errorCard: {
@@ -404,12 +404,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         alignSelf: 'stretch',
-        backgroundColor: '#059669',
+        backgroundColor: '#047857',
         paddingVertical: 16,
         paddingHorizontal: 24,
         borderRadius: 16,
         gap: 10,
-        shadowColor: '#059669',
+        shadowColor: '#047857',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         backgroundColor: '#ECFDF5',
         borderWidth: 2,
-        borderColor: '#059669',
+        borderColor: '#047857',
         paddingVertical: 16,
         paddingHorizontal: 24,
         borderRadius: 16,
@@ -436,6 +436,6 @@ const styles = StyleSheet.create({
     startPlantingButtonText: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#059669',
+        color: '#047857',
     },
 });

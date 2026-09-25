@@ -4,6 +4,7 @@ import { showAlert } from '@/lib/alert';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     ActivityIndicator,
     KeyboardAvoidingView,
@@ -19,6 +20,7 @@ import {
 
 
 export default function RegisterScreen() {
+    const insets = useSafeAreaInsets();
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -77,7 +79,7 @@ export default function RegisterScreen() {
                 style={{ flex: 1 }}
             >
                 <ScrollView
-                    contentContainerStyle={styles.scrollContent}
+                    contentContainerStyle={[styles.scrollContent, { paddingTop: Math.max(60, insets.top + 24) }]}
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                 >
@@ -85,7 +87,7 @@ export default function RegisterScreen() {
                     <View style={styles.headerSection}>
                         <View style={styles.logoContainer}>
                             <View style={styles.logoPlaceholder}>
-                                <Ionicons name="person-add" size={32} color="#059669" />
+                                <Ionicons name="person-add" size={32} color="#047857" />
                             </View>
                         </View>
                         <ThemedText type="title" style={styles.title}>Buat Akun Baru</ThemedText>
@@ -142,7 +144,7 @@ export default function RegisterScreen() {
                                     secureTextEntry={!showPassword}
                                     autoCapitalize="none"
                                 />
-                                <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                                <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon} hitSlop={8} accessibilityRole="button" accessibilityLabel={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}>
                                     <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={20} color="#9CA3AF" />
                                 </Pressable>
                             </View>
@@ -162,21 +164,21 @@ export default function RegisterScreen() {
                                     secureTextEntry={!showConfirmPassword}
                                     autoCapitalize="none"
                                 />
-                                <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
+                                <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon} hitSlop={8} accessibilityRole="button" accessibilityLabel={showConfirmPassword ? 'Sembunyikan konfirmasi password' : 'Tampilkan konfirmasi password'}>
                                     <Ionicons name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'} size={20} color="#9CA3AF" />
                                 </Pressable>
                             </View>
                         </View>
 
                         {error && (
-                            <View style={styles.errorBox}>
+                            <View style={styles.errorBox} accessibilityRole="alert" accessibilityLiveRegion="polite">
                                 <Ionicons name="alert-circle" size={18} color="#DC2626" />
                                 <ThemedText style={styles.errorText}>{error}</ThemedText>
                             </View>
                         )}
 
                         {/* Register Button */}
-                        <Pressable
+                        <Pressable accessibilityLabel="Daftar Sekarang" accessibilityRole="button" accessibilityState={{ disabled: submitting }}
                             style={[styles.registerButton, submitting && { opacity: 0.7 }]}
                             onPress={handleRegister}
                             disabled={submitting}
@@ -201,13 +203,13 @@ export default function RegisterScreen() {
                         </View>
 
                         <View style={styles.socialRow}>
-                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('Google')}>
+                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('Google')} accessibilityRole="button" accessibilityLabel="Daftar dengan Google">
                                 <Ionicons name="logo-google" size={24} color="#DB4437" />
                             </Pressable>
-                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('Apple')}>
+                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('Apple')} accessibilityRole="button" accessibilityLabel="Daftar dengan Apple">
                                 <Ionicons name="logo-apple" size={24} color="#000" />
                             </Pressable>
-                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('Facebook')}>
+                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('Facebook')} accessibilityRole="button" accessibilityLabel="Daftar dengan Facebook">
                                 <Ionicons name="logo-facebook" size={24} color="#1877F2" />
                             </Pressable>
                         </View>
@@ -216,7 +218,7 @@ export default function RegisterScreen() {
                     {/* 4. Login Link */}
                     <View style={styles.footer}>
                         <ThemedText style={styles.footerText}>Sudah punya akun? </ThemedText>
-                        <Pressable onPress={goToLogin}>
+                        <Pressable accessibilityRole="button" hitSlop={12} onPress={goToLogin}>
                             <ThemedText style={styles.loginLink}>Masuk di sini</ThemedText>
                         </Pressable>
                     </View>
@@ -231,6 +233,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#FFFFFF',
+        overflow: 'hidden',
     },
     decorativeCircle: {
         position: 'absolute',
@@ -327,7 +330,7 @@ const styles = StyleSheet.create({
         color: '#B91C1C',
     },
     registerButton: {
-        backgroundColor: '#059669', // Emerald Primary
+        backgroundColor: '#047857', // Emerald Primary
         height: 56,
         borderRadius: 16,
         flexDirection: 'row',
@@ -335,7 +338,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginTop: 16,
         gap: 8,
-        shadowColor: '#059669',
+        shadowColor: '#047857',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 10,
@@ -364,7 +367,7 @@ const styles = StyleSheet.create({
     dividerText: {
         marginHorizontal: 16,
         fontSize: 13,
-        color: '#9CA3AF',
+        color: '#6B7280',
     },
     socialRow: {
         flexDirection: 'row',
@@ -395,7 +398,7 @@ const styles = StyleSheet.create({
     },
     loginLink: {
         fontSize: 14,
-        color: '#059669',
+        color: '#047857',
         fontWeight: 'bold',
     },
 });

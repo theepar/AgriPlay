@@ -4,6 +4,7 @@ import { goBack } from '@/lib/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useRef, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     ActivityIndicator,
     Alert,
@@ -40,6 +41,7 @@ interface ChatSession {
 }
 
 export default function ChatbotScreen() {
+    const insets = useSafeAreaInsets();
     // --- State ---
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState('');
@@ -193,7 +195,7 @@ export default function ChatbotScreen() {
             <ThemedText style={[styles.messageText, item.sender === 'user' ? styles.userText : styles.aiText]}>
                 {item.text}
             </ThemedText>
-            <ThemedText style={[styles.timeText, item.sender === 'user' ? { color: '#A7F3D0' } : { color: '#9CA3AF' }]}>
+            <ThemedText style={[styles.timeText, item.sender === 'user' ? { color: '#ECFDF5' } : { color: '#6B7280' }]}>
                 {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </ThemedText>
         </View>
@@ -202,8 +204,8 @@ export default function ChatbotScreen() {
     return (
         <View style={styles.container}>
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => goBack()} style={styles.iconBtn} accessibilityRole="button" accessibilityLabel="Kembali">
+            <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+                <TouchableOpacity hitSlop={4} onPress={() => goBack()} style={styles.iconBtn} accessibilityRole="button" accessibilityLabel="Kembali">
                     <Ionicons name="arrow-back" size={24} color="#111827" />
                 </TouchableOpacity>
 
@@ -214,13 +216,13 @@ export default function ChatbotScreen() {
                     <View>
                         <View style={{ flexDirection: 'row' }}>
                             <ThemedText style={styles.headerTitle}>Agra</ThemedText>
-                            <ThemedText style={[styles.headerTitle, { color: '#059669' }]}>AI</ThemedText>
+                            <ThemedText style={[styles.headerTitle, { color: '#047857' }]}>AI</ThemedText>
                         </View>
                         <ThemedText style={styles.headerSubtitle}>Asisten Cerdas Tani</ThemedText>
                     </View>
                 </View>
 
-                <TouchableOpacity onPress={() => setShowHistoryModal(true)} style={styles.iconBtn} accessibilityRole="button" accessibilityLabel="Riwayat percakapan">
+                <TouchableOpacity hitSlop={4} onPress={() => setShowHistoryModal(true)} style={styles.iconBtn} accessibilityRole="button" accessibilityLabel="Riwayat percakapan">
                     <Ionicons name="time-outline" size={24} color="#1F2937" />
                 </TouchableOpacity>
             </View>
@@ -229,14 +231,13 @@ export default function ChatbotScreen() {
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             >
                 {/* Chat List */}
                 <View style={styles.chatContainer}>
                     {messages.length === 0 ? (
                         <View style={styles.emptyState}>
                             <View style={styles.emptyIconBg}>
-                                <Ionicons name="chatbubbles-outline" size={40} color="#059669" />
+                                <Ionicons name="chatbubbles-outline" size={40} color="#047857" />
                             </View>
                             <ThemedText type="subtitle" style={styles.emptyStateTitle}>Mulai Diskusi</ThemedText>
                             <ThemedText style={styles.emptyStateSubtitle}>Tanyakan tentang bibit, pupuk, atau hama...</ThemedText>
@@ -253,7 +254,7 @@ export default function ChatbotScreen() {
                             ListFooterComponent={
                                 isTyping ? (
                                     <View style={[styles.messageBubble, styles.aiBubble, { width: 60, alignItems: 'center' }]}>
-                                        <ActivityIndicator size="small" color="#059669" />
+                                        <ActivityIndicator size="small" color="#047857" />
                                     </View>
                                 ) : null
                             }
@@ -262,7 +263,7 @@ export default function ChatbotScreen() {
                 </View>
 
                 {/* Input Wrapper - Static Padding Only */}
-                <View style={styles.inputWrapper}>
+                <View style={[styles.inputWrapper, { paddingBottom: Math.max(insets.bottom, 8) + 12 }]}>
                     <View style={styles.inputContainer}>
                         <TextInput
                             style={styles.input}
@@ -314,7 +315,7 @@ export default function ChatbotScreen() {
                         keyExtractor={item => item.id}
                         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
                         renderItem={({ item }) => (
-                            <TouchableOpacity
+                            <TouchableOpacity accessibilityRole="button"
                                 style={[styles.historyItem, item.id === currentSessionId && styles.activeHistoryItem]}
                                 onPress={() => loadSession(item)}
                             >
@@ -340,7 +341,7 @@ export default function ChatbotScreen() {
                         ListEmptyComponent={
                             <View style={{ marginTop: 50, alignItems: 'center' }}>
                                 <Ionicons name="file-tray-outline" size={48} color="#D1D5DB" />
-                                <ThemedText style={{ color: '#9CA3AF', marginTop: 10 }}>Belum ada riwayat</ThemedText>
+                                <ThemedText style={{ color: '#6B7280', marginTop: 10 }}>Belum ada riwayat</ThemedText>
                             </View>
                         }
                     />
@@ -356,12 +357,12 @@ const styles = StyleSheet.create({
     // Header
     header: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingHorizontal: 16, paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingBottom: 16,
+        paddingHorizontal: 16, paddingBottom: 16,
         backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#F3F4F6', zIndex: 10
     },
     iconBtn: { padding: 8, borderRadius: 12, backgroundColor: '#F3F4F6' },
     headerTitleContainer: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    logoContainer: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#059669', alignItems: 'center', justifyContent: 'center' },
+    logoContainer: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#047857', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
     headerSubtitle: { fontSize: 12, color: '#6B7280', marginTop: -2 },
 
@@ -377,7 +378,7 @@ const styles = StyleSheet.create({
 
     // Bubbles
     messageBubble: { maxWidth: '85%', padding: 14, borderRadius: 20, marginBottom: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
-    userBubble: { backgroundColor: '#059669', alignSelf: 'flex-end', borderBottomRightRadius: 4 },
+    userBubble: { backgroundColor: '#047857', alignSelf: 'flex-end', borderBottomRightRadius: 4 },
     aiBubble: { backgroundColor: '#FFFFFF', alignSelf: 'flex-start', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#E5E7EB' },
     messageText: { fontSize: 15, lineHeight: 22 },
     userText: { color: '#FFFFFF' },
@@ -389,7 +390,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#F9FAFB',
         paddingHorizontal: 16,
         paddingTop: 12,
-        paddingBottom: Platform.OS === 'ios' ? 34 : 20,
     },
     inputContainer: {
         flexDirection: 'row', alignItems: 'flex-end', backgroundColor: '#FFFFFF',
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
         shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 3
     },
     input: { flex: 1, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15, color: '#1F2937', maxHeight: 100 },
-    sendButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#059669', alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+    sendButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#047857', alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
     sendButtonDisabled: { backgroundColor: '#D1D5DB' },
 
     // Modal
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#111827' },
     closeBtn: { padding: 4 },
     historyItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 16, borderRadius: 16, marginBottom: 10, borderWidth: 1, borderColor: '#E5E7EB', shadowColor: "#000", shadowOpacity: 0.02, shadowOffset: { width: 0, height: 2 } },
-    activeHistoryItem: { borderColor: '#059669', backgroundColor: '#ECFDF5' },
+    activeHistoryItem: { borderColor: '#047857', backgroundColor: '#ECFDF5' },
     historyTitle: { fontSize: 15, fontWeight: '600', color: '#1F2937', marginBottom: 4 },
-    historyDate: { fontSize: 12, color: '#9CA3AF' }
+    historyDate: { fontSize: 12, color: '#6B7280' }
 });

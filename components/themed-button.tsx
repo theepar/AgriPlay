@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#E0E0E0',
     },
     buttonActive: {
-        backgroundColor: '#059669',
+        backgroundColor: '#047857',
     },
     buttonTextInactive: {
         color: '#999',
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#E8F5E9',
     },
     buttonTextSecondary: {
-        color: '#4CAF50',
+        color: '#047857',
         fontSize: 16,
         fontWeight: '600',
         fontFamily: 'Inter_600SemiBold',
@@ -107,10 +107,10 @@ const styles = StyleSheet.create({
     buttonOutline: {
         backgroundColor: 'transparent',
         borderWidth: 2,
-        borderColor: '#4CAF50',
+        borderColor: '#047857',
     },
     buttonTextOutline: {
-        color: '#4CAF50',
+        color: '#047857',
         fontSize: 16,
         fontWeight: '600',
         fontFamily: 'Inter_600SemiBold',

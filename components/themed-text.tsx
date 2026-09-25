@@ -16,9 +16,11 @@ export function ThemedText({
   ...rest
 }: ThemedTextProps) {
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+  const isHeading = type === 'title' || type === 'subtitle';
 
   return (
     <Text
+      accessibilityRole={isHeading ? 'header' : undefined}
       style={[
         { color },
         type === 'default' ? styles.default : undefined,

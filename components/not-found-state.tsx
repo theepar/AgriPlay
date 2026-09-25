@@ -14,9 +14,9 @@ export function NotFoundState({ title, message }: NotFoundStateProps) {
     return (
         <View style={styles.container}>
             <View style={styles.iconBg}>
-                <Ionicons name="leaf-outline" size={40} color="#059669" />
+                <Ionicons name="leaf-outline" size={40} color="#047857" />
             </View>
-            <ThemedText type="subtitle" style={styles.title} accessibilityRole="header">{title}</ThemedText>
+            <ThemedText type="subtitle" style={styles.title}>{title}</ThemedText>
             <ThemedText style={styles.message}>{message}</ThemedText>
             <ThemedButton title="Ke Beranda" onPress={() => router.dismissTo('/')} style={styles.button} />
         </View>

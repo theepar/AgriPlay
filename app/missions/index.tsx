@@ -6,9 +6,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     Dimensions,
-    Platform,
     Pressable,
     ScrollView,
     StatusBar,
@@ -27,13 +27,14 @@ const COLUMN_WIDTH = (width - (PADDING_HORIZONTAL * 2) - GAP) / 2;
 // Modern Badge Colors (Soft BG + Strong Text)
 const getDifficultyStyle = (diff: string) => {
     switch (diff) {
-        case 'Sulit': return { bg: '#FEF2F2', text: '#EF4444' }; // Red
-        case 'Sedang': return { bg: '#FFFBEB', text: '#F59E0B' }; // Amber
-        default: return { bg: '#ECFDF5', text: '#10B981' };      // Emerald
+        case 'Sulit': return { bg: '#FEF2F2', text: '#B91C1C' }; // Red
+        case 'Sedang': return { bg: '#FFFBEB', text: '#B45309' }; // Amber
+        default: return { bg: '#ECFDF5', text: '#047857' };      // Emerald
     }
 };
 
 export default function MissionsListScreen() {
+    const insets = useSafeAreaInsets();
     const { taskStatus } = useGarden();
     const missions = PLANTS_DATA.map(plant => {
         const { completed, total, percent, activeTask } = getPlantProgress(plant, taskStatus);
@@ -55,8 +56,8 @@ export default function MissionsListScreen() {
             <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
 
             {/* HEADER */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => goBack()} style={styles.iconButton} accessibilityRole="button" accessibilityLabel="Kembali">
+            <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+                <TouchableOpacity hitSlop={4} onPress={() => goBack()} style={styles.iconButton} accessibilityRole="button" accessibilityLabel="Kembali">
                     <Ionicons name="arrow-back" size={24} color="#111827" />
                 </TouchableOpacity>
                 <ThemedText type="subtitle" style={styles.headerTitle}>Misi Aktif</ThemedText>
@@ -69,7 +70,7 @@ export default function MissionsListScreen() {
                 {/* SUMMARY BANNER */}
                 <View style={styles.summaryCard}>
                     <LinearGradient
-                        colors={['#059669', '#047857']} // Deep Emerald Gradient
+                        colors={['#047857', '#065F46']} // Deep Emerald Gradient
                         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
                         style={styles.summaryGradient}
                     >
@@ -106,14 +107,15 @@ export default function MissionsListScreen() {
                         const badgeStyle = getDifficultyStyle(mission.difficulty);
 
                         return (
-                            <Pressable
+                            <Pressable accessibilityRole="button"
                                 key={mission.id}
                                 style={styles.card}
                                 onPress={() => router.push({ pathname: '/missions/[id]', params: { id: mission.id } })}
+                                accessibilityLabel={`${mission.name}, ${mission.difficulty}, progres ${mission.progress} persen`}
                             >
                                 {/* Image Area */}
                                 <View style={styles.imageContainer}>
-                                    <Image
+                                    <Image alt=""
                                         source={{ uri: mission.image }}
                                         style={styles.cardImage}
                                         contentFit="cover"
@@ -186,7 +188,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: PADDING_HORIZONTAL,
-        paddingTop: Platform.OS === 'ios' ? 60 : 40,
         paddingBottom: 20,
         backgroundColor: '#F9FAFB',
         zIndex: 10,
@@ -205,7 +206,7 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         marginBottom: 32,
         // Green Shadow Glow
-        shadowColor: '#059669', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 8,
+        shadowColor: '#047857', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 8,
     },
     summaryGradient: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -264,7 +265,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         borderWidth: 1, borderColor: '#F3F4F6',
         // Soft Modern Shadow
-        shadowColor: '#059669', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 4,
+        shadowColor: '#047857', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 4,
     },
 
     // IMAGE & BADGE
@@ -314,15 +315,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6,
     },
     progressLabel: {
-        fontSize: 11, color: '#9CA3AF', fontWeight: '500',
+        fontSize: 11, color: '#6B7280', fontWeight: '500',
     },
     progressValue: {
-        fontSize: 11, color: '#059669', fontWeight: '700',
+        fontSize: 11, color: '#047857', fontWeight: '700',
     },
     progressTrack: {
         height: 6, backgroundColor: '#F3F4F6', borderRadius: 3, overflow: 'hidden',
     },
     progressFill: {
-        height: '100%', backgroundColor: '#059669', borderRadius: 3,
+        height: '100%', backgroundColor: '#047857', borderRadius: 3,
     },
 });

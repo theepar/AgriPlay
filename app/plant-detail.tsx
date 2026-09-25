@@ -7,8 +7,8 @@ import { goBack } from '@/lib/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-    Platform,
     Pressable,
     ScrollView,
     StatusBar,
@@ -20,6 +20,7 @@ import {
 
 
 export default function PlantDetailScreen() {
+    const insets = useSafeAreaInsets();
     const { id } = useLocalSearchParams();
     const { taskStatus } = useGarden();
     const plant = getPlantById(id);
@@ -40,19 +41,19 @@ export default function PlantDetailScreen() {
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
             {/* 1. SIMPLE HEADER */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Kembali">
+            <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+                <TouchableOpacity hitSlop={4} onPress={() => goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Kembali">
                     <Ionicons name="arrow-back" size={24} color="#1F2937" />
                 </TouchableOpacity>
                 <ThemedText type="subtitle" style={styles.headerTitle}>Detail Tanaman</ThemedText>
                 <View style={{ width: 40 }} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false}>
 
                 {/* 2. IMAGE CARD */}
                 <View style={styles.imageCard}>
-                    <Image source={{ uri: plant.image }} style={styles.plantImage} contentFit="cover" />
+                    <Image accessibilityLabel={`Foto tanaman ${plant.name}`} source={{ uri: plant.image }} style={styles.plantImage} contentFit="cover" />
                     <View style={styles.xpBadge}>
                         <Ionicons name="flash" size={14} color="#F59E0B" />
                         <ThemedText style={styles.xpText}>{plant.totalXp} XP</ThemedText>
@@ -84,7 +85,7 @@ export default function PlantDetailScreen() {
                         const completed = task.status === 'completed';
                         const locked = task.status === 'locked';
                         return (
-                            <Pressable
+                            <Pressable accessibilityRole="button" accessibilityState={{ disabled: locked }}
                                 key={task.id}
                                 style={[styles.taskItem, completed && styles.taskItemDone, locked && styles.taskItemLocked]}
                                 onPress={() => handleTaskPress(task.id)}
@@ -98,7 +99,7 @@ export default function PlantDetailScreen() {
                                     <ThemedText type="defaultSemiBold" style={[styles.taskTitle, completed && styles.textDone]}>{task.title}</ThemedText>
                                     <ThemedText style={styles.taskXp}>+{task.xp} XP</ThemedText>
                                 </View>
-                                {task.status === 'active' && <Ionicons name="chevron-forward" size={18} color="#059669" />}
+                                {task.status === 'active' && <Ionicons name="chevron-forward" size={18} color="#047857" />}
                             </Pressable>
                         );
                     })}
@@ -106,7 +107,7 @@ export default function PlantDetailScreen() {
             </ScrollView>
 
             {/* 6. BOTTOM BUTTON */}
-            <View style={styles.footer}>
+            <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
                 <ThemedButton
                     title="Mulai Berkebun"
                     onPress={() => router.push({ pathname: '/missions/[id]', params: { id: plant.id } })}
@@ -128,7 +129,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
-        paddingTop: Platform.OS === 'ios' ? 60 : 40,
         paddingBottom: 10,
         backgroundColor: '#fff',
     },
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     xpText: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: '#F59E0B',
+        color: '#B45309',
     },
     // Info
     infoSection: {
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     },
     plantLatin: {
         fontSize: 14,
-        color: '#4ADE80', // Green accent
+        color: '#047857', // Green accent
         fontWeight: '600',
         marginBottom: 12,
         fontStyle: 'italic',
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     label: { fontSize: 14, fontWeight: '600', color: '#374151' },
-    percent: { fontSize: 14, fontWeight: '700', color: '#059669' },
+    percent: { fontSize: 14, fontWeight: '700', color: '#047857' },
     track: {
         height: 8,
         backgroundColor: '#E5E7EB',
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     },
     fill: {
         height: '100%',
-        backgroundColor: '#059669', // Solid Green
+        backgroundColor: '#047857', // Solid Green
         borderRadius: 4,
     },
     // Tasks
@@ -261,8 +261,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     checkboxDone: {
-        backgroundColor: '#059669',
-        borderColor: '#059669',
+        backgroundColor: '#047857',
+        borderColor: '#047857',
     },
     taskTitle: {
         fontSize: 16,
@@ -270,12 +270,12 @@ const styles = StyleSheet.create({
         color: '#1F2937',
     },
     textDone: {
-        color: '#9CA3AF',
+        color: '#6B7280',
         textDecorationLine: 'line-through',
     },
     taskXp: {
         fontSize: 12,
-        color: '#F59E0B',
+        color: '#B45309',
         marginTop: 2,
     },
     // Footer
@@ -288,14 +288,14 @@ const styles = StyleSheet.create({
         borderTopColor: '#F3F4F6',
     },
     mainButton: {
-        backgroundColor: '#059669', // Primary Green
+        backgroundColor: '#047857', // Primary Green
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 16,
         borderRadius: 16,
         gap: 8,
-        shadowColor: '#059669',
+        shadowColor: '#047857',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 8,

@@ -20,6 +20,7 @@ import {
     View,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // --- TYPES ---
 type ExperienceLevel = 'pemula' | 'menengah' | 'mahir' | null;
@@ -64,6 +65,7 @@ function formatCoords({ latitude, longitude }: Coordinates): string {
 }
 
 export default function PlantRecommendationScreen() {
+    const insets = useSafeAreaInsets();
     // --- STATE ---
     const [step, setStep] = useState(1);
     const [experience, setExperience] = useState<ExperienceLevel>(null);
@@ -200,8 +202,8 @@ export default function PlantRecommendationScreen() {
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
             {/* 1. Header Simple */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => step === 1 ? goBack() : setStep(step - 1)} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Kembali">
+            <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+                <TouchableOpacity hitSlop={4} onPress={() => step === 1 ? goBack() : setStep(step - 1)} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Kembali">
                     <Ionicons name="arrow-back" size={24} color="#1F2937" />
                 </TouchableOpacity>
                 <ThemedText type="subtitle" style={styles.headerTitle}>Rekomendasi Tanaman</ThemedText>
@@ -215,7 +217,7 @@ export default function PlantRecommendationScreen() {
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={{ flex: 1 }}
             >
-                <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+                <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false}>
 
                     {/* STEP 1: Experience */}
                     {step === 1 && (
@@ -236,9 +238,11 @@ export default function PlantRecommendationScreen() {
                                             experience === item.id && styles.selectionCardActive
                                         ]}
                                         onPress={() => setExperience(item.id as ExperienceLevel)}
+                                        accessibilityRole="radio"
+                                        accessibilityState={{ checked: experience === item.id }}
                                     >
                                         <View style={[styles.iconContainer, experience === item.id && styles.iconContainerActive]}>
-                                            <Ionicons name={item.icon as any} size={24} color={experience === item.id ? '#059669' : '#9CA3AF'} />
+                                            <Ionicons name={item.icon as any} size={24} color={experience === item.id ? '#047857' : '#9CA3AF'} />
                                         </View>
                                         <View style={{ flex: 1 }}>
                                             <ThemedText type="defaultSemiBold" style={[styles.cardTitle, experience === item.id && styles.textActive]}>{item.label}</ThemedText>
@@ -271,11 +275,18 @@ export default function PlantRecommendationScreen() {
                                         onSubmitEditing={handleSearch}
                                         returnKeyType="search"
                                     />
-                                    <TouchableOpacity onPress={handleSearch} disabled={searching || !location.trim()} style={styles.searchBtn}>
+                                    <TouchableOpacity
+                                        onPress={handleSearch}
+                                        disabled={searching || !location.trim()}
+                                        style={styles.searchBtn}
+                                        hitSlop={8}
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Cari lokasi"
+                                    >
                                         {searching ? (
-                                            <ActivityIndicator size="small" color="#059669" />
+                                            <ActivityIndicator size="small" color="#047857" />
                                         ) : (
-                                            <Ionicons name="search" size={20} color={location.trim() ? '#059669' : '#D1D5DB'} />
+                                            <Ionicons name="search" size={20} color={location.trim() ? '#047857' : '#D1D5DB'} />
                                         )}
                                     </TouchableOpacity>
                                 </View>
@@ -289,7 +300,7 @@ export default function PlantRecommendationScreen() {
                             {/* Weather Info Display */}
                             {weather && (
                                 <View style={styles.weatherInfo}>
-                                    <Ionicons name="cloud-outline" size={20} color="#059669" />
+                                    <Ionicons name="cloud-outline" size={20} color="#047857" />
                                     <ThemedText style={styles.weatherText}>
                                         Cuaca saat ini: {weather.description}, {weather.temp}°C
                                     </ThemedText>
@@ -308,7 +319,7 @@ export default function PlantRecommendationScreen() {
                                         if (coords) applyCoordinates(coords);
                                     }}
                                 />
-                                <TouchableOpacity
+                                <TouchableOpacity hitSlop={4}
                                     style={styles.gpsButton}
                                     onPress={handleGetLocation}
                                     disabled={loadingLocation}
@@ -316,10 +327,10 @@ export default function PlantRecommendationScreen() {
                                     accessibilityLabel="Gunakan lokasi GPS saat ini"
                                 >
                                     {loadingLocation ? (
-                                        <ActivityIndicator size="small" color="#059669" />
+                                        <ActivityIndicator size="small" color="#047857" />
                                     ) : (
                                         <>
-                                            <Ionicons name="locate" size={18} color="#059669" />
+                                            <Ionicons name="locate" size={18} color="#047857" />
                                             <ThemedText style={styles.gpsText}>Gunakan GPS</ThemedText>
                                         </>
                                     )}
@@ -347,9 +358,11 @@ export default function PlantRecommendationScreen() {
                                             sunCondition === item.id && styles.selectionCardActive
                                         ]}
                                         onPress={() => setSunCondition(item.id as SunCondition)}
+                                        accessibilityRole="radio"
+                                        accessibilityState={{ checked: sunCondition === item.id }}
                                     >
                                         <View style={[styles.iconContainer, sunCondition === item.id && styles.iconContainerActive]}>
-                                            <Ionicons name={item.icon as any} size={24} color={sunCondition === item.id ? '#059669' : '#F59E0B'} />
+                                            <Ionicons name={item.icon as any} size={24} color={sunCondition === item.id ? '#047857' : '#F59E0B'} />
                                         </View>
                                         <View style={{ flex: 1 }}>
                                             <ThemedText type="defaultSemiBold" style={[styles.cardTitle, sunCondition === item.id && styles.textActive]}>{item.label}</ThemedText>
@@ -368,7 +381,7 @@ export default function PlantRecommendationScreen() {
             </KeyboardAvoidingView>
 
             {/* Footer */}
-            <View style={styles.footer}>
+            <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
                 <ThemedButton
                     title={step === 3 ? 'Lihat Hasil' : 'Selanjutnya'}
                     onPress={handleNext}
@@ -392,7 +405,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
-        paddingTop: Platform.OS === 'ios' ? 60 : 40,
         paddingBottom: 10,
         backgroundColor: '#fff',
     },
@@ -420,7 +432,7 @@ const styles = StyleSheet.create({
     },
     progressFill: {
         height: '100%',
-        backgroundColor: '#059669', // Primary Green
+        backgroundColor: '#047857', // Primary Green
         borderRadius: 2,
     },
     stepText: {
@@ -466,7 +478,7 @@ const styles = StyleSheet.create({
         gap: 16,
     },
     selectionCardActive: {
-        borderColor: '#059669',
+        borderColor: '#047857',
         backgroundColor: '#ECFDF5', // Very light green bg
     },
     iconContainer: {
@@ -487,7 +499,7 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     textActive: {
-        color: '#059669',
+        color: '#047857',
     },
     cardSubtitle: {
         fontSize: 13,
@@ -503,13 +515,13 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     radioOuterActive: {
-        borderColor: '#059669',
+        borderColor: '#047857',
     },
     radioInner: {
         width: 10,
         height: 10,
         borderRadius: 5,
-        backgroundColor: '#059669',
+        backgroundColor: '#047857',
     },
 
     // Inputs
@@ -554,7 +566,7 @@ const styles = StyleSheet.create({
     },
     weatherText: {
         fontSize: 14,
-        color: '#059669',
+        color: '#047857',
         fontWeight: '600',
     },
 
@@ -590,7 +602,7 @@ const styles = StyleSheet.create({
     gpsText: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#059669',
+        color: '#047857',
     },
 
     // Footer

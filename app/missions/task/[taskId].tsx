@@ -8,9 +8,9 @@ import { showAlert } from '@/lib/alert';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { useState, type ComponentProps } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     Dimensions,
-    Platform,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -27,6 +27,7 @@ const REQUIREMENTS: { id: number; label: string; icon: ComponentProps<typeof Ion
 ];
 
 export default function TaskDetailScreen() {
+    const insets = useSafeAreaInsets();
     const { taskId } = useLocalSearchParams();
     const { taskStatus, completeTask } = useGarden();
     const [submitting, setSubmitting] = useState(false);
@@ -67,8 +68,8 @@ export default function TaskDetailScreen() {
             <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
 
             {/* HEADER */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={backToMission} style={styles.navBtn} accessibilityRole="button" accessibilityLabel="Kembali">
+            <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+                <TouchableOpacity hitSlop={4} onPress={backToMission} style={styles.navBtn} accessibilityRole="button" accessibilityLabel="Kembali">
                     <Ionicons name="arrow-back" size={24} color="#111827" />
                 </TouchableOpacity>
                 <ThemedText type="defaultSemiBold" style={styles.headerTitle}>Detail Tugas</ThemedText>
@@ -82,7 +83,7 @@ export default function TaskDetailScreen() {
                 {/* 1. HERO / TITLE SECTION */}
                 <View style={styles.heroSection}>
                     <View style={styles.iconCircle}>
-                        <Ionicons name="construct" size={32} color="#059669" />
+                        <Ionicons name="construct" size={32} color="#047857" />
                     </View>
                     <ThemedText type="title" style={styles.taskTitle}>{task.title}</ThemedText>
                     <ThemedText style={styles.taskDesc}>{task.description}</ThemedText>
@@ -90,8 +91,8 @@ export default function TaskDetailScreen() {
                     {/* Meta Chips */}
                     <View style={styles.metaRow}>
                         <View style={[styles.chip, { backgroundColor: '#ECFDF5' }]}>
-                            <Ionicons name="flash" size={14} color="#059669" />
-                            <ThemedText style={[styles.chipText, { color: '#059669' }]}>+{task.xp} XP</ThemedText>
+                            <Ionicons name="flash" size={14} color="#047857" />
+                            <ThemedText style={[styles.chipText, { color: '#047857' }]}>+{task.xp} XP</ThemedText>
                         </View>
                         <View style={[styles.chip, { backgroundColor: '#F3F4F6' }]}>
                             <Ionicons name="time-outline" size={14} color="#6B7280" />
@@ -99,7 +100,7 @@ export default function TaskDetailScreen() {
                         </View>
                         <View style={[styles.chip, { backgroundColor: '#FFFBEB' }]}>
                             <Ionicons name="pricetag-outline" size={14} color="#D97706" />
-                            <ThemedText style={[styles.chipText, { color: '#D97706' }]}>{task.category}</ThemedText>
+                            <ThemedText style={[styles.chipText, { color: '#B45309' }]}>{task.category}</ThemedText>
                         </View>
                     </View>
                 </View>
@@ -113,7 +114,7 @@ export default function TaskDetailScreen() {
                     {task.requirements.map((req) => (
                         <View key={req.id} style={styles.reqCard}>
                             <View style={styles.reqIconBg}>
-                                <Ionicons name={req.icon} size={20} color="#059669" />
+                                <Ionicons name={req.icon} size={20} color="#047857" />
                             </View>
                             <ThemedText style={styles.reqLabel} numberOfLines={2}>{req.label}</ThemedText>
                         </View>
@@ -153,11 +154,11 @@ export default function TaskDetailScreen() {
                     })}
                 </View>
 
-                <View style={{ height: 100 }} />
+                <View style={{ height: 100 + insets.bottom }} />
             </ScrollView>
 
             {/* FOOTER ACTION */}
-            <View style={styles.footer}>
+            <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
                 <ThemedButton
                     title={status === 'completed' ? 'Sudah Selesai ✓' : status === 'locked' ? 'Masih Terkunci' : 'Tandai Selesai'}
                     variant="primary"
@@ -181,7 +182,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 24,
-        paddingTop: Platform.OS === 'ios' ? 60 : 40,
         paddingBottom: 16,
         backgroundColor: '#F9FAFB',
         zIndex: 10,
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
         fontSize: 18, fontWeight: '700', color: '#111827',
     },
     stepCount: {
-        fontSize: 13, fontWeight: '600', color: '#9CA3AF',
+        fontSize: 13, fontWeight: '600', color: '#6B7280',
     },
     reqGrid: {
         flexDirection: 'row', flexWrap: 'wrap', gap: 12,
@@ -286,11 +286,11 @@ const styles = StyleSheet.create({
     },
     numberBubble: {
         width: 32, height: 32, borderRadius: 16,
-        backgroundColor: '#059669',
+        backgroundColor: '#047857',
         alignItems: 'center', justifyContent: 'center',
         zIndex: 1,
         borderWidth: 3, borderColor: '#F9FAFB', // Ring effect
-        shadowColor: '#059669', shadowOpacity: 0.2, shadowOffset: { width: 0, height: 2 },
+        shadowColor: '#047857', shadowOpacity: 0.2, shadowOffset: { width: 0, height: 2 },
     },
     numberText: {
         color: '#FFF', fontWeight: 'bold', fontSize: 12,
@@ -312,13 +312,13 @@ const styles = StyleSheet.create({
     footer: {
         position: 'absolute', bottom: 0, left: 0, right: 0,
         backgroundColor: '#FFFFFF',
-        padding: 20, paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+        padding: 20, 
         borderTopWidth: 1, borderTopColor: '#F3F4F6',
     },
     actionButton: {
         borderRadius: 16,
         overflow: 'hidden',
-        shadowColor: '#059669', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4,
+        shadowColor: '#047857', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4,
     },
     gradientBtn: {
         paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
