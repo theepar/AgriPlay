@@ -1,6 +1,6 @@
 import { NotFoundState } from '@/components/not-found-state';
 import { ThemedText } from '@/components/themed-text';
-import { getPlantById } from '@/constants/plants';
+import { getPlantById, PLANTS_DATA } from '@/constants/plants';
 import { getPlantProgress, useGarden } from '@/lib/garden-store';
 import { goBack } from '@/lib/navigation';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,11 @@ import {
 } from 'react-native';
 
 
+
+// Web (static export): buat halaman untuk setiap tanaman yang punya misi.
+export function generateStaticParams() {
+    return PLANTS_DATA.map(plant => ({ id: plant.id }));
+}
 
 export default function MissionDetailScreen() {
     const insets = useSafeAreaInsets();

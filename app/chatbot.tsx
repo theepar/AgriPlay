@@ -267,6 +267,7 @@ export default function ChatbotScreen() {
                     <View style={styles.inputContainer}>
                         <TextInput
                             style={styles.input}
+                            accessibilityLabel="Pertanyaan untuk AgraAI"
                             placeholder="Ketik pertanyaanmu..."
                             value={inputText}
                             onChangeText={setInputText}

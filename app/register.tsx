@@ -104,6 +104,7 @@ export default function RegisterScreen() {
                                 <Ionicons name="person-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
                                 <TextInput
                                     style={styles.input}
+                                    accessibilityLabel="Username"
                                     placeholder="Pilih username"
                                     placeholderTextColor="#D1D5DB"
                                     value={username}
@@ -120,6 +121,7 @@ export default function RegisterScreen() {
                                 <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
                                 <TextInput
                                     style={styles.input}
+                                    accessibilityLabel="Email"
                                     placeholder="nama@email.com"
                                     placeholderTextColor="#D1D5DB"
                                     value={email}
@@ -137,6 +139,7 @@ export default function RegisterScreen() {
                                 <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
                                 <TextInput
                                     style={styles.input}
+                                    accessibilityLabel="Password"
                                     placeholder="Minimal 8 karakter"
                                     placeholderTextColor="#D1D5DB"
                                     value={password}
@@ -157,6 +160,7 @@ export default function RegisterScreen() {
                                 <Ionicons name="shield-checkmark-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
                                 <TextInput
                                     style={styles.input}
+                                    accessibilityLabel="Konfirmasi password"
                                     placeholder="Ulangi password"
                                     placeholderTextColor="#D1D5DB"
                                     value={confirmPassword}

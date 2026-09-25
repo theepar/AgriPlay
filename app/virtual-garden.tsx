@@ -90,7 +90,7 @@ export default function VirtualGardenScreen() {
                         style={[styles.tabButton, activeTab === 'my_garden' && styles.tabActive]}
                         onPress={() => { setActiveTab('my_garden'); setSearchQuery(''); }}
                         accessibilityRole="tab"
-                        accessibilityState={{ selected: activeTab === 'my_garden' }}
+                        aria-selected={activeTab === 'my_garden'}
                     >
                         <ThemedText style={[styles.tabText, activeTab === 'my_garden' && styles.tabTextActive]}>Koleksi Saya</ThemedText>
                     </Pressable>
@@ -98,7 +98,7 @@ export default function VirtualGardenScreen() {
                         style={[styles.tabButton, activeTab === 'explore' && styles.tabActive]}
                         onPress={() => { setActiveTab('explore'); setSearchQuery(''); }}
                         accessibilityRole="tab"
-                        accessibilityState={{ selected: activeTab === 'explore' }}
+                        aria-selected={activeTab === 'explore'}
                     >
                         <ThemedText style={[styles.tabText, activeTab === 'explore' && styles.tabTextActive]}>Jelajahi</ThemedText>
                     </Pressable>
@@ -109,6 +109,7 @@ export default function VirtualGardenScreen() {
                     <Ionicons name="search" size={20} color="#9CA3AF" />
                     <TextInput
                         style={styles.searchInput}
+                        accessibilityLabel="Pencarian"
                         placeholder={searchPlaceholder}
                         placeholderTextColor="#9CA3AF"
                         value={searchQuery}

@@ -93,6 +93,7 @@ export default function LoginScreen() {
                                 <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
                                 <TextInput
                                     style={styles.input}
+                                    accessibilityLabel="Email"
                                     placeholder="nama@email.com"
                                     placeholderTextColor="#D1D5DB"
                                     value={email}
@@ -112,6 +113,7 @@ export default function LoginScreen() {
                                 <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
                                 <TextInput
                                     style={styles.input}
+                                    accessibilityLabel="Password"
                                     placeholder="Masukkan password"
                                     placeholderTextColor="#D1D5DB"
                                     value={password}

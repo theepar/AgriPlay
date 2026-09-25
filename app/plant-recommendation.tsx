@@ -239,7 +239,7 @@ export default function PlantRecommendationScreen() {
                                         ]}
                                         onPress={() => setExperience(item.id as ExperienceLevel)}
                                         accessibilityRole="radio"
-                                        accessibilityState={{ checked: experience === item.id }}
+                                        aria-checked={experience === item.id}
                                     >
                                         <View style={[styles.iconContainer, experience === item.id && styles.iconContainerActive]}>
                                             <Ionicons name={item.icon as any} size={24} color={experience === item.id ? '#047857' : '#9CA3AF'} />
@@ -268,6 +268,7 @@ export default function PlantRecommendationScreen() {
                                     <Ionicons name="location-outline" size={20} color="#9CA3AF" style={{ marginRight: 10 }} />
                                     <TextInput
                                         style={styles.input}
+                                        accessibilityLabel="Lokasi lahan"
                                         placeholder="Cari kota / kecamatan..."
                                         placeholderTextColor="#9CA3AF"
                                         value={location}
@@ -362,7 +363,7 @@ export default function PlantRecommendationScreen() {
                                         ]}
                                         onPress={() => setSunCondition(item.id as SunCondition)}
                                         accessibilityRole="radio"
-                                        accessibilityState={{ checked: sunCondition === item.id }}
+                                        aria-checked={sunCondition === item.id}
                                     >
                                         <View style={[styles.iconContainer, sunCondition === item.id && styles.iconContainerActive]}>
                                             <Ionicons name={item.icon as any} size={24} color={sunCondition === item.id ? '#047857' : '#F59E0B'} />

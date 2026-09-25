@@ -1,7 +1,7 @@
 import { NotFoundState } from '@/components/not-found-state';
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
-import { findTask } from '@/constants/plants';
+import { findTask, PLANTS_DATA } from '@/constants/plants';
 import { useGarden } from '@/lib/garden-store';
 import { goBack } from '@/lib/navigation';
 import { showAlert } from '@/lib/alert';
@@ -25,6 +25,11 @@ const REQUIREMENTS: { id: number; label: string; icon: ComponentProps<typeof Ion
     { id: 2, label: 'Sekop Kecil', icon: 'hammer' },
     { id: 3, label: 'Air', icon: 'water' },
 ];
+
+// Web (static export): buat halaman untuk setiap tugas.
+export function generateStaticParams() {
+    return PLANTS_DATA.flatMap(plant => plant.tasks.map(task => ({ taskId: task.id })));
+}
 
 export default function TaskDetailScreen() {
     const insets = useSafeAreaInsets();
