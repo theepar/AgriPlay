@@ -30,6 +30,19 @@ interface SessionContextValue {
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
+function parseProfile(raw: string | null): UserProfile | null {
+    if (!raw) return null;
+    try {
+        const profile = JSON.parse(raw) as Partial<UserProfile>;
+        return typeof profile.email === 'string' && typeof profile.name === 'string'
+            ? { email: profile.email, name: profile.name }
+            : null;
+    } catch {
+        console.warn('Profil tersimpan rusak, diabaikan.');
+        return null;
+    }
+}
+
 export function SessionProvider({ children }: { children: ReactNode }) {
     const [ready, setReady] = useState(false);
     const [seenOnboarding, setSeenOnboarding] = useState(false);
@@ -39,7 +52,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         AsyncStorage.multiGet([KEYS.onboarding, KEYS.loggedIn, KEYS.profile])
             .then(([[, onboarding], [, loggedIn], [, profile]]) => {
                 setSeenOnboarding(onboarding === 'true');
-                if (loggedIn === 'true' && profile) setUser(JSON.parse(profile) as UserProfile);
+                if (loggedIn === 'true') setUser(parseProfile(profile));
             })
             .catch(error => console.warn('Gagal memuat sesi:', error))
             .finally(() => setReady(true));
@@ -51,8 +64,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const signIn = useCallback(async (email: string, name?: string) => {
-        const savedRaw = await AsyncStorage.getItem(KEYS.profile);
-        const saved = savedRaw ? (JSON.parse(savedRaw) as UserProfile) : null;
+        const saved = parseProfile(await AsyncStorage.getItem(KEYS.profile));
         const profile: UserProfile = {
             email,
             name: name ?? (saved?.email === email ? saved.name : email.split('@')[0]),

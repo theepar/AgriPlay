@@ -1,11 +1,12 @@
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
+import { goBack } from '@/lib/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     FlatList,
     KeyboardAvoidingView,
     LayoutAnimation,
@@ -48,17 +49,22 @@ export default function ChatbotScreen() {
     const [sessions, setSessions] = useState<ChatSession[]>([]);
     const [currentSessionId, setCurrentSessionId] = useState<string>(Date.now().toString());
     const [showHistoryModal, setShowHistoryModal] = useState(false);
+    // Jangan menyimpan sebelum riwayat lama selesai dimuat, agar tidak tertimpa.
+    const [sessionsLoaded, setSessionsLoaded] = useState(false);
 
     const flatListRef = useRef<FlatList<Message>>(null);
+    const replyTimers = useRef(new Set<ReturnType<typeof setTimeout>>());
+    const messageCounter = useRef(0);
 
     // --- Effects ---
     useEffect(() => {
         loadSessions();
+        return cancelPendingReply;
     }, []);
 
     // Auto scroll & Save saat pesan bertambah
     useEffect(() => {
-        if (messages.length === 0) return;
+        if (!sessionsLoaded || messages.length === 0) return;
         setTimeout(() => {
             flatListRef.current?.scrollToEnd({ animated: true });
         }, 100);
@@ -85,7 +91,7 @@ export default function ChatbotScreen() {
             AsyncStorage.setItem('chat_sessions', JSON.stringify(updatedSessions)).catch(err => console.error(err));
             return updatedSessions;
         });
-    }, [messages, currentSessionId]);
+    }, [messages, currentSessionId, sessionsLoaded]);
 
     // --- Logic Storage & Session ---
     const loadSessions = async () => {
@@ -94,10 +100,22 @@ export default function ChatbotScreen() {
             if (data) setSessions(JSON.parse(data));
         } catch (error) {
             console.error('Error loading sessions', error);
+        } finally {
+            setSessionsLoaded(true);
         }
     };
 
+    const newMessageId = () => `${Date.now()}-${messageCounter.current++}`;
+
+    // Balasan yang masih tertunda tidak boleh masuk ke percakapan lain.
+    function cancelPendingReply() {
+        replyTimers.current.forEach(clearTimeout);
+        replyTimers.current.clear();
+        setIsTyping(false);
+    }
+
     const startNewChat = () => {
+        cancelPendingReply();
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setMessages([]);
         setCurrentSessionId(Date.now().toString());
@@ -105,17 +123,29 @@ export default function ChatbotScreen() {
     };
 
     const loadSession = (session: ChatSession) => {
+        cancelPendingReply();
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setMessages(session.messages);
         setCurrentSessionId(session.id);
         setShowHistoryModal(false);
     };
 
-    const deleteSession = async (id: string) => {
+    const deleteSession = (id: string) => {
         const newSessions = sessions.filter(s => s.id !== id);
         setSessions(newSessions);
-        await AsyncStorage.setItem('chat_sessions', JSON.stringify(newSessions));
+        AsyncStorage.setItem('chat_sessions', JSON.stringify(newSessions)).catch(err => console.error(err));
         if (currentSessionId === id) startNewChat();
+    };
+
+    const confirmDelete = (session: ChatSession) => {
+        if (Platform.OS === 'web') {
+            if (window.confirm(`Hapus percakapan "${session.title}"?`)) deleteSession(session.id);
+            return;
+        }
+        Alert.alert('Hapus percakapan?', `"${session.title}" akan dihapus permanen.`, [
+            { text: 'Batal', style: 'cancel' },
+            { text: 'Hapus', style: 'destructive', onPress: () => deleteSession(session.id) },
+        ]);
     };
 
     // --- Logic Send Message ---
@@ -128,12 +158,13 @@ export default function ChatbotScreen() {
     };
 
     const handleSend = () => {
-        if (inputText.trim() === '') return;
+        const text = inputText.trim();
+        if (text === '') return;
 
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         const newUserMessage: Message = {
-            id: Date.now().toString(),
-            text: inputText,
+            id: newMessageId(),
+            text,
             sender: 'user',
             timestamp: Date.now(),
         };
@@ -142,17 +173,19 @@ export default function ChatbotScreen() {
         setInputText('');
         setIsTyping(true);
 
-        setTimeout(() => {
+        const timer = setTimeout(() => {
+            replyTimers.current.delete(timer);
             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
             const aiResponse: Message = {
-                id: (Date.now() + 1).toString(),
-                text: generateDummyResponse(newUserMessage.text),
+                id: newMessageId(),
+                text: generateDummyResponse(text),
                 sender: 'ai',
                 timestamp: Date.now(),
             };
             setMessages((prev) => [...prev, aiResponse]);
-            setIsTyping(false);
+            setIsTyping(replyTimers.current.size > 0);
         }, 1500);
+        replyTimers.current.add(timer);
     };
 
     const renderMessage = ({ item }: { item: Message }) => (
@@ -170,7 +203,7 @@ export default function ChatbotScreen() {
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+                <TouchableOpacity onPress={() => goBack()} style={styles.iconBtn} accessibilityRole="button" accessibilityLabel="Kembali">
                     <Ionicons name="arrow-back" size={24} color="#111827" />
                 </TouchableOpacity>
 
@@ -187,7 +220,7 @@ export default function ChatbotScreen() {
                     </View>
                 </View>
 
-                <TouchableOpacity onPress={() => setShowHistoryModal(true)} style={styles.iconBtn}>
+                <TouchableOpacity onPress={() => setShowHistoryModal(true)} style={styles.iconBtn} accessibilityRole="button" accessibilityLabel="Riwayat percakapan">
                     <Ionicons name="time-outline" size={24} color="#1F2937" />
                 </TouchableOpacity>
             </View>
@@ -244,6 +277,8 @@ export default function ChatbotScreen() {
                             style={[styles.sendButton, inputText.trim() === '' && styles.sendButtonDisabled]}
                             onPress={handleSend}
                             disabled={inputText.trim() === ''}
+                            accessibilityRole="button"
+                            accessibilityLabel="Kirim pesan"
                         >
                             <Ionicons name="arrow-up" size={20} color="#FFF" />
                         </TouchableOpacity>
@@ -261,7 +296,7 @@ export default function ChatbotScreen() {
                 <View style={styles.modalContainer}>
                     <View style={styles.modalHeader}>
                         <ThemedText type="subtitle" style={styles.modalTitle}>Riwayat Percakapan</ThemedText>
-                        <TouchableOpacity onPress={() => setShowHistoryModal(false)} style={styles.closeBtn}>
+                        <TouchableOpacity onPress={() => setShowHistoryModal(false)} style={styles.closeBtn} hitSlop={10} accessibilityRole="button" accessibilityLabel="Tutup riwayat">
                             <Ionicons name="close" size={24} color="#374151" />
                         </TouchableOpacity>
                     </View>
@@ -291,7 +326,13 @@ export default function ChatbotScreen() {
                                         {new Date(item.lastModified).toLocaleDateString()}
                                     </ThemedText>
                                 </View>
-                                <TouchableOpacity onPress={() => deleteSession(item.id)} style={{ padding: 8 }}>
+                                <TouchableOpacity
+                                    onPress={() => confirmDelete(item)}
+                                    style={{ padding: 8 }}
+                                    hitSlop={6}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`Hapus percakapan ${item.title}`}
+                                >
                                     <Ionicons name="trash-outline" size={18} color="#EF4444" />
                                 </TouchableOpacity>
                             </TouchableOpacity>

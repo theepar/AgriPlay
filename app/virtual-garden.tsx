@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { PLANTS_DATA } from '@/constants/plants';
 import { getPlantProgress, useGarden } from '@/lib/garden-store';
+import { goBack } from '@/lib/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -74,7 +75,7 @@ export default function VirtualGardenScreen() {
             {/* HEADER FIXED (Tidak ikut scroll) */}
             <View style={styles.headerContainer}>
                 <View style={styles.navRow}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                    <TouchableOpacity onPress={() => goBack()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Kembali">
                         <Ionicons name="arrow-back" size={24} color="#111827" />
                     </TouchableOpacity>
                     <ThemedText type="subtitle" style={styles.headerTitle}>Virtual Garden</ThemedText>

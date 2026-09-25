@@ -3,6 +3,8 @@ import { ThemedText } from '@/components/themed-text';
 import { PLANTS_DATA } from '@/constants/plants';
 import { getLevelInfo, getPlantProgress, useGarden } from '@/lib/garden-store';
 import { resetTo, useSession } from '@/lib/session';
+import { goBack } from '@/lib/navigation';
+import { showAlert } from '@/lib/alert';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -46,17 +48,18 @@ export default function ProfileScreen() {
     const handle = '@' + (user?.email.split('@')[0] ?? 'agrarian');
 
     const plants = PLANTS_DATA.map(plant => {
-        const { percent, activeTask } = getPlantProgress(plant, taskStatus);
+        const { percent, completed, activeTask } = getPlantProgress(plant, taskStatus);
         return {
             id: plant.id,
             name: plant.name,
             status: activeTask ? activeTask.title : 'Siap Panen',
             image: plant.image,
             progress: percent,
+            completed,
             color: plant.color,
         };
     });
-    const completedTasks = Object.values(taskStatus).filter(status => status === 'completed').length;
+    const completedTasks = plants.reduce((sum, plant) => sum + plant.completed, 0);
 
     // Pencapaian dihitung dari progres nyata, bukan data statis.
     const badges: Badge[] = [
@@ -66,8 +69,12 @@ export default function ProfileScreen() {
     ];
 
     const handleLogout = async () => {
-        await signOut();
-        resetTo('/');
+        try {
+            await signOut();
+            resetTo('/');
+        } catch {
+            showAlert('Gagal keluar', 'Terjadi kesalahan saat menyimpan data. Coba lagi.');
+        }
     };
 
     return (
@@ -83,7 +90,7 @@ export default function ProfileScreen() {
 
                     {/* Navbar Absolute */}
                     <View style={styles.navBar}>
-                        <TouchableOpacity onPress={() => router.back()} style={styles.navButton}>
+                        <TouchableOpacity onPress={() => goBack()} style={styles.navButton} accessibilityRole="button" accessibilityLabel="Kembali">
                             <Ionicons name="arrow-back" size={24} color="#FFF" />
                         </TouchableOpacity>
                     </View>

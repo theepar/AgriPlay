@@ -45,6 +45,17 @@ function seedState(): GardenState {
     return { taskStatus, xp };
 }
 
+// Tanaman yang belum selesai harus punya tugas aktif, mis. setelah tugas baru ditambahkan ke PLANTS_DATA.
+function ensureActiveTasks(taskStatus: TaskStatusMap): TaskStatusMap {
+    const result = { ...taskStatus };
+    for (const plant of PLANTS_DATA) {
+        const hasActive = plant.tasks.some(t => result[t.id] === 'active');
+        const firstLocked = plant.tasks.find(t => result[t.id] === 'locked');
+        if (!hasActive && firstLocked) result[firstLocked.id] = 'active';
+    }
+    return result;
+}
+
 export function getPlantProgress(plant: Plant, taskStatus: TaskStatusMap): PlantProgress {
     const total = plant.tasks.length;
     const completed = plant.tasks.filter(t => taskStatus[t.id] === 'completed').length;
@@ -77,7 +88,7 @@ export function GardenProvider({ children }: { children: ReactNode }) {
                 const saved = JSON.parse(raw) as Partial<GardenState>;
                 // Gabungkan dengan seed agar tugas baru di PLANTS_DATA tetap punya status.
                 setState(prev => ({
-                    taskStatus: { ...prev.taskStatus, ...saved.taskStatus },
+                    taskStatus: ensureActiveTasks({ ...prev.taskStatus, ...saved.taskStatus }),
                     xp: typeof saved.xp === 'number' ? saved.xp : prev.xp,
                 }));
             })

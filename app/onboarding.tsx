@@ -174,6 +174,7 @@ export default function OnboardingScreen() {
                     pagingEnabled
                     bounces={false}
                     keyExtractor={(item) => item.id.toString()}
+                    getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
                     onScroll={Animated.event(
                         [{ nativeEvent: { contentOffset: { x: scrollX } } }],
                         { useNativeDriver: false }

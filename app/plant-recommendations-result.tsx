@@ -1,12 +1,13 @@
 import { ThemedText } from '@/components/themed-text';
 import { getCropInfo, type CropInfo } from '@/constants/crops';
 import { describeApiError, getCropRecommendation, mapExperienceToAPI, mapSunConditionToAPI } from '@/lib/api';
+import { goBack } from '@/lib/navigation';
+import { showAlert } from '@/lib/alert';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     Platform,
     ScrollView,
     Share,
@@ -18,7 +19,11 @@ import {
 
 // --- CONSTANTS ---
 const PADDING = 24;
-const DEFAULT_COORDS = { latitude: -7.0051, longitude: 107.6419 };
+
+function parseCoordinate(value: string | undefined, limit: number): number | null {
+    const parsed = Number(value);
+    return value && Number.isFinite(parsed) && Math.abs(parsed) <= limit ? parsed : null;
+}
 
 type ResultState =
     | { status: 'loading' }
@@ -36,14 +41,18 @@ export default function PlantRecommendationResultScreen() {
     const location = params.location || 'Lokasi Tidak Diketahui';
     const experience = params.experience || 'pemula';
     const sunCondition = params.sunCondition || 'full';
-    const latitude = parseFloat(params.latitude ?? '') || DEFAULT_COORDS.latitude;
-    const longitude = parseFloat(params.longitude ?? '') || DEFAULT_COORDS.longitude;
+    const latitude = parseCoordinate(params.latitude, 90);
+    const longitude = parseCoordinate(params.longitude, 180);
+    const hasLocation = latitude !== null && longitude !== null;
 
-    const [result, setResult] = useState<ResultState>({ status: 'loading' });
+    const [result, setResult] = useState<ResultState>(
+        hasLocation ? { status: 'loading' } : { status: 'error', message: 'Lokasi lahan belum dipilih. Ulangi langkah rekomendasi.' },
+    );
     const [attempt, setAttempt] = useState(0);
 
     // Call ML API on mount (dan setiap kali pengguna menekan "Coba Lagi")
     useEffect(() => {
+        if (latitude === null || longitude === null) return;
         let cancelled = false;
         getCropRecommendation({
             tingkat_komitmen: mapExperienceToAPI(experience),
@@ -82,7 +91,7 @@ export default function PlantRecommendationResultScreen() {
                 title: `Rekomendasi Tanaman: ${crop.name}`,
             });
         } catch {
-            Alert.alert('Error', 'Gagal membagikan rekomendasi');
+            showAlert('Error', 'Gagal membagikan rekomendasi');
         }
     };
 
@@ -95,11 +104,17 @@ export default function PlantRecommendationResultScreen() {
 
             {/* HEADER */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()}>
+                <TouchableOpacity onPress={() => goBack('/plant-recommendation')} style={styles.headerBtn} accessibilityRole="button" accessibilityLabel="Kembali">
                     <Ionicons name="arrow-back" size={24} color="#111827" />
                 </TouchableOpacity>
                 <ThemedText type="subtitle" style={styles.headerTitle}>Hasil Analisis</ThemedText>
-                <TouchableOpacity onPress={handleShare} disabled={result.status !== 'success'}>
+                <TouchableOpacity
+                    onPress={handleShare}
+                    disabled={result.status !== 'success'}
+                    style={styles.headerBtn}
+                    accessibilityRole="button"
+                    accessibilityLabel="Bagikan rekomendasi"
+                >
                     <Ionicons name="share-social-outline" size={24} color={result.status === 'success' ? '#111827' : '#D1D5DB'} />
                 </TouchableOpacity>
             </View>
@@ -125,10 +140,17 @@ export default function PlantRecommendationResultScreen() {
                         </View>
                         <ThemedText type="subtitle" style={styles.errorTitle}>Rekomendasi Gagal Dimuat</ThemedText>
                         <ThemedText style={styles.errorText}>{result.message}</ThemedText>
-                        <TouchableOpacity style={styles.homeButton} onPress={handleRetry}>
-                            <Ionicons name="refresh" size={20} color="#FFF" />
-                            <ThemedText style={styles.homeButtonText}>Coba Lagi</ThemedText>
-                        </TouchableOpacity>
+                        {hasLocation ? (
+                            <TouchableOpacity style={styles.homeButton} onPress={handleRetry}>
+                                <Ionicons name="refresh" size={20} color="#FFF" />
+                                <ThemedText style={styles.homeButtonText}>Coba Lagi</ThemedText>
+                            </TouchableOpacity>
+                        ) : (
+                            <TouchableOpacity style={styles.homeButton} onPress={() => router.replace('/plant-recommendation')}>
+                                <Ionicons name="location-outline" size={20} color="#FFF" />
+                                <ThemedText style={styles.homeButtonText}>Pilih Lokasi</ThemedText>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 )}
 
@@ -241,6 +263,9 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 8,
         elevation: 4,
+    },
+    headerBtn: {
+        width: 44, height: 44, alignItems: 'center', justifyContent: 'center',
     },
     headerTitle: {
         fontSize: 16, fontWeight: '700', color: '#111827',

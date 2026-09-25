@@ -1,12 +1,14 @@
+import { NotFoundState } from '@/components/not-found-state';
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { findTask } from '@/constants/plants';
 import { useGarden } from '@/lib/garden-store';
+import { goBack } from '@/lib/navigation';
+import { showAlert } from '@/lib/alert';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { useState, type ComponentProps } from 'react';
 import {
-    Alert,
     Dimensions,
     Platform,
     ScrollView,
@@ -18,51 +20,46 @@ import {
 
 const { width } = Dimensions.get('window');
 
+const REQUIREMENTS: { id: number; label: string; icon: ComponentProps<typeof Ionicons>['name'] }[] = [
+    { id: 1, label: 'Sarung Tangan', icon: 'hand-left' },
+    { id: 2, label: 'Sekop Kecil', icon: 'hammer' },
+    { id: 3, label: 'Air', icon: 'water' },
+];
+
 export default function TaskDetailScreen() {
     const { taskId } = useLocalSearchParams();
     const { taskStatus, completeTask } = useGarden();
     const [submitting, setSubmitting] = useState(false);
 
-    // Find the task across all plants
-    const foundTask = findTask(taskId)?.task;
-    const status = foundTask ? taskStatus[foundTask.id] : 'locked';
+    const found = findTask(taskId);
+    if (!found) {
+        return <NotFoundState title="Tugas tidak ditemukan" message="Tugas ini tidak tersedia. Coba buka dari daftar misi." />;
+    }
 
-    // Default/Fallback data if task not found or for missing fields
-    const task = foundTask ? {
+    const { plant, task: foundTask } = found;
+    const status = taskStatus[foundTask.id];
+    const backToMission = () => goBack({ pathname: '/missions/[id]', params: { id: plant.id } });
+
+    const task = {
         ...foundTask,
-        category: 'Perawatan', // Default category
-        duration: '15-30 Menit', // Default duration
-        description: foundTask.desc, // Map desc to description
-        requirements: [
-            { id: 1, label: 'Sarung Tangan', icon: 'hand-left' },
-            { id: 2, label: 'Sekop Kecil', icon: 'hammer' },
-            { id: 3, label: 'Air', icon: 'water' },
-        ],
+        category: 'Perawatan',
+        duration: '15-30 Menit',
+        description: foundTask.desc,
+        requirements: REQUIREMENTS,
         steps: [
             { id: 1, title: 'Persiapan', desc: 'Siapkan semua alat dan bahan yang dibutuhkan.' },
             { id: 2, title: 'Pelaksanaan', desc: foundTask.desc },
             { id: 3, title: 'Penyelesaian', desc: 'Pastikan area kerja kembali bersih dan rapi.' },
-        ]
-    } : {
-        // Fallback if ID not found
-        id: '0',
-        title: 'Tugas Tidak Ditemukan',
-        category: '-',
-        status: 'locked',
-        xp: 0,
-        duration: '-',
-        description: 'Detail tugas tidak tersedia.',
-        requirements: [],
-        steps: []
+        ],
     };
 
     const handleComplete = () => {
-        if (!foundTask) return;
         setSubmitting(true);
         const xpGained = completeTask(foundTask.id);
-        Alert.alert('Tugas Selesai! 🎉', `Kamu mendapatkan +${xpGained} XP. Tugas berikutnya sudah terbuka.`, [
-            { text: 'Lanjut', onPress: () => router.back() },
-        ]);
+        showAlert('Tugas Selesai! 🎉', `Kamu mendapatkan +${xpGained} XP. Tugas berikutnya sudah terbuka.`, {
+            buttonText: 'Lanjut',
+            onDismiss: backToMission,
+        });
     };
 
     return (
@@ -71,7 +68,7 @@ export default function TaskDetailScreen() {
 
             {/* HEADER */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
+                <TouchableOpacity onPress={backToMission} style={styles.navBtn} accessibilityRole="button" accessibilityLabel="Kembali">
                     <Ionicons name="arrow-back" size={24} color="#111827" />
                 </TouchableOpacity>
                 <ThemedText type="defaultSemiBold" style={styles.headerTitle}>Detail Tugas</ThemedText>
@@ -113,10 +110,10 @@ export default function TaskDetailScreen() {
                 </View>
 
                 <View style={styles.reqGrid}>
-                    {task.requirements.map((req: any) => (
+                    {task.requirements.map((req) => (
                         <View key={req.id} style={styles.reqCard}>
                             <View style={styles.reqIconBg}>
-                                <Ionicons name={req.icon as any} size={20} color="#059669" />
+                                <Ionicons name={req.icon} size={20} color="#059669" />
                             </View>
                             <ThemedText style={styles.reqLabel} numberOfLines={2}>{req.label}</ThemedText>
                         </View>
@@ -135,7 +132,7 @@ export default function TaskDetailScreen() {
                     {/* Garis Vertikal Sambung */}
                     <View style={styles.connectorLine} />
 
-                    {task.steps.map((step: any, index: number) => {
+                    {task.steps.map((step, index) => {
                         const isLast = index === task.steps.length - 1;
                         return (
                             <View key={step.id} style={[styles.stepRow, isLast && { marginBottom: 0 }]}>

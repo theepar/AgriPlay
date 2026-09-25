@@ -1,11 +1,11 @@
 import { ThemedText } from '@/components/themed-text';
 import { EMAIL_PATTERN, MIN_PASSWORD_LENGTH, resetTo, useSession } from '@/lib/session';
+import { showAlert } from '@/lib/alert';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -58,7 +58,7 @@ export default function RegisterScreen() {
     };
 
     const handleSocialLogin = (provider: string) => {
-        Alert.alert('Segera Hadir', `Daftar dengan ${provider} belum tersedia. Silakan daftar dengan email.`);
+        showAlert('Segera Hadir', `Daftar dengan ${provider} belum tersedia. Silakan daftar dengan email.`);
     };
 
     const goToLogin = () => {

@@ -23,16 +23,36 @@ import {
 
 const { width } = Dimensions.get('window');
 
-interface WeatherData extends CurrentWeather {
-    location: string;
-}
+type WeatherState =
+    | { status: 'loading' }
+    | { status: 'ready'; weather: CurrentWeather; location: string }
+    | { status: 'unavailable'; message: string };
 
-const FALLBACK_WEATHER: WeatherData = {
-    temp: 27,
-    description: 'Cerah Berawan',
-    icon: 'partly-sunny',
-    location: 'Bandung',
-};
+async function loadWeather(): Promise<WeatherState> {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+        return { status: 'unavailable', message: 'Izinkan akses lokasi untuk melihat cuaca' };
+    }
+
+    // Posisi terakhir yang diketahui jauh lebih cepat daripada menunggu GPS.
+    const position =
+        (await Location.getLastKnownPositionAsync({ maxAge: 30 * 60 * 1000 })) ??
+        (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }));
+    const { latitude, longitude } = position.coords;
+
+    const [addressResult, weatherResult] = await Promise.allSettled([
+        Location.reverseGeocodeAsync({ latitude, longitude }),
+        fetchCurrentWeather(latitude, longitude),
+    ]);
+
+    const address = addressResult.status === 'fulfilled' ? addressResult.value[0] : undefined;
+    const location = address?.city || address?.subregion || 'Lokasi Anda';
+
+    if (weatherResult.status === 'rejected') {
+        return { status: 'unavailable', message: `Cuaca belum tersedia • ${location}` };
+    }
+    return { status: 'ready', weather: weatherResult.value, location };
+}
 
 // Rute "/" menjadi gerbang: arahkan ke onboarding/login jika belum login.
 export default function IndexRoute() {
@@ -58,45 +78,24 @@ function HomeScreen({ userName }: { userName: string }) {
         };
     });
 
-    // Weather state
-    const [weather, setWeather] = useState<WeatherData>(FALLBACK_WEATHER);
-    const [loadingWeather, setLoadingWeather] = useState(true);
+    const [weatherState, setWeatherState] = useState<WeatherState>({ status: 'loading' });
+    const [weatherAttempt, setWeatherAttempt] = useState(0);
 
-    // Fetch weather data
     useEffect(() => {
-        fetchWeatherData();
-    }, []);
-
-    const fetchWeatherData = async () => {
-        try {
-            // 1. Get location permission
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') return;
-
-            // 2. Get current location with LOW accuracy for speed
-            const location = await Location.getCurrentPositionAsync({
-                accuracy: Location.Accuracy.Low, // Much faster (~1-2 sec vs 10+ sec)
+        let cancelled = false;
+        loadWeather()
+            .catch((): WeatherState => ({ status: 'unavailable', message: 'Lokasi tidak terdeteksi' }))
+            .then(state => {
+                if (!cancelled) setWeatherState(state);
             });
-            const { latitude, longitude } = location.coords;
+        return () => {
+            cancelled = true;
+        };
+    }, [weatherAttempt]);
 
-            // 3. Fetch location name & weather in PARALLEL for speed
-            const [addressResult, weatherResult] = await Promise.allSettled([
-                Location.reverseGeocodeAsync({ latitude, longitude }),
-                fetchCurrentWeather(latitude, longitude),
-            ]);
-
-            let locationName = 'Lokasi Tidak Diketahui';
-            if (addressResult.status === 'fulfilled' && addressResult.value[0]) {
-                locationName = addressResult.value[0].city || addressResult.value[0].subregion || locationName;
-            }
-
-            const current = weatherResult.status === 'fulfilled' ? weatherResult.value : FALLBACK_WEATHER;
-            setWeather({ ...current, location: locationName });
-        } catch (error) {
-            console.warn('Weather fetch error:', error);
-        } finally {
-            setLoadingWeather(false);
-        }
+    const retryWeather = () => {
+        setWeatherState({ status: 'loading' });
+        setWeatherAttempt(n => n + 1);
     };
 
     const handlePlantDetail = (plantId: string) => {
@@ -130,19 +129,35 @@ function HomeScreen({ userName }: { userName: string }) {
                     </View>
 
                     {/* 2. Weather Card (Sekarang di dalam fixed container) */}
-                    <View style={styles.weatherCard}>
-                        {loadingWeather ? (
-                            <ActivityIndicator size="large" color="#059669" />
-                        ) : (
+                    <Pressable
+                        style={styles.weatherCard}
+                        onPress={retryWeather}
+                        disabled={weatherState.status !== 'unavailable'}
+                        accessibilityRole={weatherState.status === 'unavailable' ? 'button' : undefined}
+                        accessibilityHint={weatherState.status === 'unavailable' ? 'Muat ulang cuaca' : undefined}
+                    >
+                        {weatherState.status === 'loading' && <ActivityIndicator size="large" color="#059669" />}
+                        {weatherState.status === 'ready' && (
                             <>
-                                <View>
-                                    <ThemedText style={styles.weatherTemp}>{weather.temp}°</ThemedText>
-                                    <ThemedText style={styles.weatherDesc}>{weather.description} • {weather.location}</ThemedText>
+                                <View style={{ flex: 1 }}>
+                                    <ThemedText style={styles.weatherTemp}>{weatherState.weather.temp}°</ThemedText>
+                                    <ThemedText style={styles.weatherDesc} numberOfLines={1}>
+                                        {weatherState.weather.description} • {weatherState.location}
+                                    </ThemedText>
                                 </View>
-                                <Ionicons name={weather.icon} size={56} color="#F59E0B" />
+                                <Ionicons name={weatherState.weather.icon} size={56} color="#F59E0B" />
                             </>
                         )}
-                    </View>
+                        {weatherState.status === 'unavailable' && (
+                            <>
+                                <View style={{ flex: 1, marginRight: 12 }}>
+                                    <ThemedText style={styles.weatherUnavailable}>{weatherState.message}</ThemedText>
+                                    <ThemedText style={styles.weatherDesc}>Ketuk untuk coba lagi</ThemedText>
+                                </View>
+                                <Ionicons name="cloud-offline-outline" size={44} color="#9CA3AF" />
+                            </>
+                        )}
+                    </Pressable>
                 </View>
             </View>
 
@@ -338,6 +353,11 @@ const styles = StyleSheet.create({
         color: '#111827',
         lineHeight: 48, // Tambah line height agar tidak terpotong
         includeFontPadding: false, // Android: hilangkan padding tambahan
+    },
+    weatherUnavailable: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#374151',
     },
     weatherDesc: {
         fontSize: 13,

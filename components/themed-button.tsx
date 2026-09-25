@@ -42,6 +42,8 @@ export function ThemedButton({
         <Pressable
             style={buttonStyles}
             disabled={disabled}
+            accessibilityRole="button"
+            accessibilityState={{ disabled }}
             {...rest}
         >
             {icon}

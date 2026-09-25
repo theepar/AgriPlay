@@ -1,13 +1,14 @@
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { fetchCurrentWeather, type CurrentWeather } from '@/lib/weather';
+import { goBack } from '@/lib/navigation';
+import { showAlert } from '@/lib/alert';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -30,7 +31,7 @@ const DEFAULT_COORDS: Coordinates = { latitude: -7.0051, longitude: 107.6419 };
 // HTML peta dibuat sekali. Posisi marker diubah lewat injectJavaScript agar
 // WebView tidak reload setiap kali koordinat berubah.
 function buildMapHtml({ latitude, longitude }: Coordinates): string {
-    return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" /><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><style>body, html, #map { width: 100%; height: 100%; margin: 0; }</style></head><body><div id="map"></div><script>
+    return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" /><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" /><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script><style>body, html, #map { width: 100%; height: 100%; margin: 0; }</style></head><body><div id="map"></div><script>
 var map = L.map('map', {zoomControl: false}).setView([${latitude}, ${longitude}], 15);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '&copy; OpenStreetMap'}).addTo(map);
 var marker = L.marker([${latitude}, ${longitude}], {draggable: true}).addTo(map);
@@ -43,6 +44,19 @@ window.setMarker = function(lat, lng) { marker.setLatLng([lat, lng]); map.setVie
 
 function formatAddress(address: Location.LocationGeocodedAddress): string {
     return [address.street, address.city ?? address.subregion, address.region].filter(Boolean).join(', ');
+}
+
+// Pesan dari WebView diperlakukan sebagai input tak tepercaya.
+function parseMapMessage(data: string): Coordinates | null {
+    try {
+        const { latitude, longitude } = JSON.parse(data);
+        const valid =
+            typeof latitude === 'number' && typeof longitude === 'number' &&
+            Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180;
+        return valid ? { latitude, longitude } : null;
+    } catch {
+        return null;
+    }
 }
 
 function formatCoords({ latitude, longitude }: Coordinates): string {
@@ -63,6 +77,7 @@ export default function PlantRecommendationScreen() {
     const [hasPickedLocation, setHasPickedLocation] = useState(false);
     const [mapHtml] = useState(() => buildMapHtml(DEFAULT_COORDS));
     const webViewRef = useRef<WebView>(null);
+    const latestRequest = useRef(0);
 
     // --- LOGIC ---
     const moveMarker = ({ latitude, longitude }: Coordinates) => {
@@ -70,26 +85,31 @@ export default function PlantRecommendationScreen() {
     };
 
     const applyCoordinates = async (coords: Coordinates, options: { label?: string; moveMarker?: boolean } = {}) => {
+        // Respons untuk titik lama (pin digeser cepat) tidak boleh menimpa titik terbaru.
+        const request = ++latestRequest.current;
+        const isLatest = () => request === latestRequest.current;
+
         setCoordinates(coords);
         setHasPickedLocation(true);
+        setWeather(null);
         if (options.moveMarker) moveMarker(coords);
 
         fetchCurrentWeather(coords.latitude, coords.longitude)
-            .then(setWeather)
-            .catch(() => setWeather(null));
+            .then(result => isLatest() && setWeather(result))
+            .catch(() => {});
 
         if (options.label) {
             setLocation(options.label);
             return;
         }
+        let label = formatCoords(coords);
         try {
             // Android butuh izin lokasi untuk geocoding; jangan memunculkan dialog di sini.
             const { granted } = await Location.getForegroundPermissionsAsync();
             const [address] = granted ? await Location.reverseGeocodeAsync(coords) : [];
-            setLocation((address && formatAddress(address)) || formatCoords(coords));
-        } catch {
-            setLocation(formatCoords(coords));
-        }
+            if (address) label = formatAddress(address) || label;
+        } catch {}
+        if (isLatest()) setLocation(label);
     };
 
     const handleGetLocation = async () => {
@@ -97,7 +117,7 @@ export default function PlantRecommendationScreen() {
         try {
             const { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') {
-                Alert.alert('Izin lokasi ditolak', 'Pilih titik lahan langsung di peta atau cari nama lokasi.');
+                showAlert('Izin lokasi ditolak', 'Pilih titik lahan langsung di peta atau cari nama lokasi.');
                 return;
             }
 
@@ -107,7 +127,7 @@ export default function PlantRecommendationScreen() {
             const { latitude, longitude } = currentLocation.coords;
             await applyCoordinates({ latitude, longitude }, { moveMarker: true });
         } catch {
-            Alert.alert('Gagal', 'Gagal mendapatkan data lokasi. Coba pilih titik di peta.');
+            showAlert('Gagal', 'Gagal mendapatkan data lokasi. Coba pilih titik di peta.');
         } finally {
             setLoadingLocation(false);
         }
@@ -121,12 +141,12 @@ export default function PlantRecommendationScreen() {
             await Location.requestForegroundPermissionsAsync();
             const [result] = await Location.geocodeAsync(query);
             if (!result) {
-                Alert.alert('Lokasi tidak ditemukan', 'Coba nama kota/kecamatan yang lebih spesifik, atau pilih titik di peta.');
+                showAlert('Lokasi tidak ditemukan', 'Coba nama kota/kecamatan yang lebih spesifik, atau pilih titik di peta.');
                 return;
             }
             await applyCoordinates({ latitude: result.latitude, longitude: result.longitude }, { label: query, moveMarker: true });
         } catch {
-            Alert.alert('Pencarian gagal', 'Tidak dapat mencari lokasi. Pilih titik langsung di peta atau gunakan GPS.');
+            showAlert('Pencarian gagal', 'Tidak dapat mencari lokasi. Pilih titik langsung di peta atau gunakan GPS.');
         } finally {
             setSearching(false);
         }
@@ -181,7 +201,7 @@ export default function PlantRecommendationScreen() {
 
             {/* 1. Header Simple */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => step === 1 ? router.back() : setStep(step - 1)} style={styles.backBtn}>
+                <TouchableOpacity onPress={() => step === 1 ? goBack() : setStep(step - 1)} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Kembali">
                     <Ionicons name="arrow-back" size={24} color="#1F2937" />
                 </TouchableOpacity>
                 <ThemedText type="subtitle" style={styles.headerTitle}>Rekomendasi Tanaman</ThemedText>
@@ -284,16 +304,16 @@ export default function PlantRecommendationScreen() {
                                     // Peta dibuat ulang saat kembali ke langkah ini; pulihkan titik yang dipilih.
                                     onLoadEnd={() => hasPickedLocation && moveMarker(coordinates)}
                                     onMessage={(event) => {
-                                        try {
-                                            const data = JSON.parse(event.nativeEvent.data) as Coordinates;
-                                            applyCoordinates({ latitude: data.latitude, longitude: data.longitude });
-                                        } catch { }
+                                        const coords = parseMapMessage(event.nativeEvent.data);
+                                        if (coords) applyCoordinates(coords);
                                     }}
                                 />
                                 <TouchableOpacity
                                     style={styles.gpsButton}
                                     onPress={handleGetLocation}
                                     disabled={loadingLocation}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Gunakan lokasi GPS saat ini"
                                 >
                                     {loadingLocation ? (
                                         <ActivityIndicator size="small" color="#059669" />

@@ -1,11 +1,11 @@
 import { ThemedText } from '@/components/themed-text';
 import { EMAIL_PATTERN, resetTo, useSession } from '@/lib/session';
+import { showAlert } from '@/lib/alert';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -52,7 +52,7 @@ export default function LoginScreen() {
     };
 
     const handleSocialLogin = (provider: string) => {
-        Alert.alert('Segera Hadir', `Login dengan ${provider} belum tersedia. Silakan masuk dengan email.`);
+        showAlert('Segera Hadir', `Login dengan ${provider} belum tersedia. Silakan masuk dengan email.`);
     };
 
     return (

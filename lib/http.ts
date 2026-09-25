@@ -27,7 +27,12 @@ export async function fetchJson<T>(url: string, init: RequestInit = {}, timeoutM
         if (!response.ok) {
             throw new RequestError(`Server merespons dengan status ${response.status}`, 'http', response.status);
         }
-        return (await response.json()) as T;
+        try {
+            return (await response.json()) as T;
+        } catch (error) {
+            if (controller.signal.aborted) throw error;
+            throw new RequestError('Respons server tidak valid', 'http', response.status);
+        }
     } catch (error) {
         if (error instanceof RequestError) throw error;
         if (controller.signal.aborted) {

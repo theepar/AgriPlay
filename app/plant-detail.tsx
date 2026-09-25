@@ -1,7 +1,9 @@
+import { NotFoundState } from '@/components/not-found-state';
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
-import { getPlantById, PLANTS_DATA } from '@/constants/plants';
+import { getPlantById } from '@/constants/plants';
 import { getPlantProgress, useGarden } from '@/lib/garden-store';
+import { goBack } from '@/lib/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -19,8 +21,11 @@ import {
 
 export default function PlantDetailScreen() {
     const { id } = useLocalSearchParams();
-    const plant = getPlantById(id) ?? PLANTS_DATA[0];
     const { taskStatus } = useGarden();
+    const plant = getPlantById(id);
+    if (!plant) {
+        return <NotFoundState title="Tanaman tidak ditemukan" message="Data tanaman ini tidak tersedia." />;
+    }
     const { percent: progress } = getPlantProgress(plant, taskStatus);
 
     // Status tugas berasal dari progres misi yang tersimpan (read-only di sini).
@@ -36,13 +41,11 @@ export default function PlantDetailScreen() {
 
             {/* 1. SIMPLE HEADER */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                <TouchableOpacity onPress={() => goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Kembali">
                     <Ionicons name="arrow-back" size={24} color="#1F2937" />
                 </TouchableOpacity>
                 <ThemedText type="subtitle" style={styles.headerTitle}>Detail Tanaman</ThemedText>
-                <TouchableOpacity>
-                    <Ionicons name="ellipsis-horizontal" size={24} color="#1F2937" />
-                </TouchableOpacity>
+                <View style={{ width: 40 }} />
             </View>
 
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
