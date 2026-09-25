@@ -82,7 +82,15 @@ Model memakai rata-rata iklim 11 tahun penuh terakhir (NASA POWER) + ketinggian 
 | Status | Arti |
 |--------|------|
 | `422` | Input tidak valid (koordinat di luar rentang, `sun_exposure` tidak dikenal, data iklim kosong) |
+| `429` | Terlalu banyak permintaan dari klien yang sama (default 60/menit) |
 | `502` | Sumber data eksternal (NASA POWER / API elevasi) gagal diakses |
+
+### Konfigurasi
+
+| Env | Default | Fungsi |
+|-----|---------|--------|
+| `MODEL_DIR` | `saved_models/` | Folder file model `*.joblib` |
+| `RATE_LIMIT_PER_MINUTE` | `60` | Batas request POST per klien per menit (`0` = nonaktif). Klien dikenali dari entri paling kanan `X-Forwarded-For` (dari reverse proxy). |
 
 ---
 

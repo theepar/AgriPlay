@@ -1,7 +1,11 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from collections import OrderedDict
+import threading
+import time
 import joblib
 import numpy as np
 import pandas as pd
@@ -21,6 +25,8 @@ DATA_YEARS = 11
 NASA_FILL_VALUE = -999  # NASA POWER memakai -999 untuk data yang hilang
 NASA_TIMEOUT_S = 60
 ELEVATION_TIMEOUT_S = 10
+# Tiap request dengan lokasi baru mengunduh data NASA 11 tahun, jadi dibatasi per klien (0 = nonaktif).
+RATE_LIMIT_PER_MINUTE = int(os.environ.get("RATE_LIMIT_PER_MINUTE", "60"))
 
 
 class LRUCache:
@@ -29,25 +35,57 @@ class LRUCache:
     def __init__(self, max_entries):
         self.max_entries = max_entries
         self._data = OrderedDict()
+        # Endpoint sync berjalan di thread pool; tanpa lock, set/get paralel bisa KeyError.
+        self._lock = threading.Lock()
 
     def get(self, key):
-        if key not in self._data:
-            return None
-        self._data.move_to_end(key)
-        return self._data[key]
+        with self._lock:
+            if key not in self._data:
+                return None
+            self._data.move_to_end(key)
+            return self._data[key]
 
     def set(self, key, value):
-        self._data[key] = value
-        self._data.move_to_end(key)
-        while len(self._data) > self.max_entries:
-            self._data.popitem(last=False)
+        with self._lock:
+            self._data[key] = value
+            self._data.move_to_end(key)
+            while len(self._data) > self.max_entries:
+                self._data.popitem(last=False)
 
     def __len__(self):
-        return len(self._data)
+        with self._lock:
+            return len(self._data)
+
+
+class RateLimiter:
+    """Sliding window sederhana per klien (in-memory, satu proses)."""
+
+    def __init__(self, window_s=60, max_clients=10_000):
+        self.window_s = window_s
+        self.max_clients = max_clients
+        self._hits = {}
+        self._lock = threading.Lock()
+
+    def allow(self, client, limit):
+        now = time.monotonic()
+        with self._lock:
+            hits = [t for t in self._hits.get(client, []) if now - t < self.window_s]
+            allowed = len(hits) < limit
+            if allowed:
+                hits.append(now)
+            self._hits[client] = hits
+            if len(self._hits) > self.max_clients:
+                self._hits = {k: v for k, v in self._hits.items() if v and now - v[-1] < self.window_s}
+            return allowed
+
+    def reset(self):
+        with self._lock:
+            self._hits.clear()
 
 
 nasa_cache = LRUCache(max_entries=128)
 elevation_cache = LRUCache(max_entries=1024)
+rate_limiter = RateLimiter()
 
 try:
     regressor = joblib.load(os.path.join(MODEL_DIR, "yield_prediction_regressor.joblib"))
@@ -74,6 +112,33 @@ app = FastAPI(title="Agrarian ML API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"])
 
 
+def _client_id(request: Request) -> str:
+    # Di belakang reverse proxy (HF Spaces), entri paling kanan ditambahkan proxy dan tidak bisa dipalsukan klien.
+    forwarded = [part.strip() for part in request.headers.get("x-forwarded-for", "").split(",") if part.strip()]
+    if forwarded:
+        return forwarded[-1]
+    return request.client.host if request.client else "unknown"
+
+
+@app.middleware("http")
+async def limit_requests(request: Request, call_next):
+    limited = request.method == "POST" and RATE_LIMIT_PER_MINUTE > 0
+    if limited and not rate_limiter.allow(_client_id(request), RATE_LIMIT_PER_MINUTE):
+        return JSONResponse(
+            {"detail": "Terlalu banyak permintaan. Coba lagi dalam satu menit."},
+            status_code=429,
+            headers={"Retry-After": "60"},
+        )
+    return await call_next(request)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exc: RequestValidationError):
+    # Input mentah tidak dipantulkan: bisa berisi NaN (tidak valid di JSON) atau data sembarang.
+    errors = [{key: err[key] for key in ("type", "loc", "msg") if key in err} for err in exc.errors()]
+    return JSONResponse(status_code=422, content={"detail": errors})
+
+
 @app.get("/")
 def root():
     return {"status": "API is running", "cache_stats": {"nasa": len(nasa_cache), "elevation": len(elevation_cache)}}
@@ -85,8 +150,8 @@ class Location(BaseModel):
 
 
 class PlantInput(BaseModel):
-    name: str
-    base_temp: float
+    name: str = Field(min_length=1, max_length=100)
+    base_temp: float = Field(ge=-20, le=50, allow_inf_nan=False)
     growing_days: int = Field(gt=0, le=730)
 
 
@@ -94,15 +159,15 @@ class Input(BaseModel):
     plant: PlantInput
     location: Location
     startDate: datetime.date
-    area: float = Field(gt=0)
+    area: float = Field(gt=0, le=10_000_000)
 
 
 class Input_cla(BaseModel):
     # tingkat_komitmen & area belum dipakai model, tetap diterima untuk kompatibilitas aplikasi.
-    tingkat_komitmen: str | None = None
+    tingkat_komitmen: str | None = Field(default=None, max_length=20)
     location: Location
-    sun_exposure: str
-    area: float | None = None
+    sun_exposure: str = Field(max_length=40)
+    area: float | None = Field(default=None, ge=0, le=10_000_000)
 
 
 def _mean(values, what):
@@ -297,6 +362,9 @@ def crop_recommendation(input_: Input_cla):
         data["elevation"],
         input_.sun_exposure,
     ]]
-    pred = classifier.predict(ct_cla.transform(inputs))
+    try:
+        pred = classifier.predict(ct_cla.transform(inputs))
+    except ValueError as exc:  # mis. kategori sun_exposure tidak dikenal encoder
+        raise HTTPException(status_code=422, detail=f"Input tidak dapat diproses model: {exc}") from exc
     plant_name = le.inverse_transform(pred)[0]
     return {"plant": str(plant_name)}

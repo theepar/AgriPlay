@@ -195,3 +195,86 @@ def test_lru_cache_evicts_oldest(api):
     cache.set("c", 3)
     assert cache.get("b") is None
     assert cache.get("a") == 1 and cache.get("c") == 3
+
+
+def test_rate_limit_per_client(client, api, monkeypatch):
+    monkeypatch.setattr(api, "RATE_LIMIT_PER_MINUTE", 3)
+    api.rate_limiter.reset()
+    codes = [client.post("/crop_recommendation_fastapi", json=RECOMMEND_BODY).status_code for _ in range(4)]
+    assert codes == [200, 200, 200, 429]
+    # Health check tidak ikut dibatasi.
+    assert client.get("/").status_code == 200
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"sun_exposure": "x" * 500},
+        {"tingkat_komitmen": "x" * 500},
+    ],
+)
+def test_overlong_strings_rejected(client, override):
+    response = client.post("/crop_recommendation_fastapi", json={**RECOMMEND_BODY, **override})
+    assert response.status_code == 422
+
+
+def test_unknown_category_is_422_even_without_category_list(client, api, monkeypatch):
+    monkeypatch.setattr(api, "SUN_EXPOSURES", None)
+    response = client.post("/crop_recommendation_fastapi", json={**RECOMMEND_BODY, "sun_exposure": "Moonlight"})
+    assert response.status_code == 422
+
+
+def test_cache_is_thread_safe(api):
+    import sys
+    import threading
+
+    # Paksa pergantian thread sesering mungkin agar race terlihat.
+    previous = sys.getswitchinterval()
+    sys.setswitchinterval(1e-6)
+    cache = api.LRUCache(max_entries=1)
+    errors = []
+
+    def worker(offset):
+        try:
+            for i in range(10_000):
+                cache.set((offset, i % 3), i)
+                cache.get((offset, i % 3))
+        except Exception as exc:  # noqa: BLE001
+            errors.append(exc)
+
+    threads = [threading.Thread(target=worker, args=(n,)) for n in range(16)]
+    try:
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+    finally:
+        sys.setswitchinterval(previous)
+    assert errors == []
+    assert len(cache) <= 1
+
+
+def test_rate_limit_can_be_disabled(client, api, monkeypatch):
+    monkeypatch.setattr(api, "RATE_LIMIT_PER_MINUTE", 0)
+    codes = {client.post("/crop_recommendation_fastapi", json=RECOMMEND_BODY).status_code for _ in range(5)}
+    assert codes == {200}
+
+
+def test_yield_rejects_non_finite_base_temp(client):
+    response = client.post(
+        "/yield_prediction_fastapi",
+        content='{"plant": {"name": "Rice", "base_temp": NaN, "growing_days": 120}, '
+        '"location": {"lat": -6.9, "lon": 107.6}, "startDate": "2024-03-01", "area": 100}',
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 422
+
+
+def test_non_finite_coordinates_rejected_without_crash(client):
+    response = client.post(
+        "/crop_recommendation_fastapi",
+        content='{"location": {"lat": NaN, "lon": Infinity}, "sun_exposure": "Full Sun"}',
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 422
+    assert all("input" not in err for err in response.json()["detail"])

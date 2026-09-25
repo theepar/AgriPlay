@@ -11,6 +11,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY ./saved_models ./saved_models
 COPY ./app ./app
 
+# Jalankan sebagai user non-root (uid 1000, sesuai rekomendasi Hugging Face Spaces)
+RUN useradd --create-home --uid 1000 appuser
+USER appuser
+
 # Expose port
 EXPOSE 7860
 
