@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import  OneHotEncoder, LabelEncoder, OrdinalEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder, OrdinalEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier
@@ -20,10 +20,13 @@ y = le.fit_transform(y)
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
 
-scaler = StandardScaler()
-X[3:8] = scaler.fit_transform(X[3:8])
-
+# Random Forest tidak butuh feature scaling. (Sebelumnya `X[3:8] = scaler.fit_transform(X[3:8])`
+# justru menskalakan 5 BARIS data, bukan kolom, dan scaler-nya tidak ikut disimpan.)
 classifier = RandomForestClassifier(n_estimators = 10, criterion = 'entropy', random_state = 0)
+classifier.fit(X_train, y_train)
+print(f"Akurasi data uji: {accuracy_score(y_test, classifier.predict(X_test)):.3f}")
+
+# Model final dilatih ulang dengan seluruh data.
 classifier.fit(X, y)
 
 joblib.dump(classifier, "../saved_models/crop_recommendation_classifier.joblib")

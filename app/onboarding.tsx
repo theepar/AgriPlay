@@ -1,15 +1,15 @@
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSession } from '@/lib/session';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     Animated,
     Dimensions,
     FlatList,
-    Platform,
     Pressable,
     StatusBar,
     StyleSheet,
@@ -17,7 +17,7 @@ import {
     ViewToken
 } from 'react-native';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const onboardingData = [
     {
@@ -48,9 +48,11 @@ const onboardingData = [
 ];
 
 export default function OnboardingScreen() {
+    const insets = useSafeAreaInsets();
     const [currentIndex, setCurrentIndex] = useState(0);
     const scrollX = useRef(new Animated.Value(0)).current;
     const slidesRef = useRef<FlatList>(null);
+    const { completeOnboarding } = useSession();
 
     const viewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
         if (viewableItems && viewableItems.length > 0 && viewableItems[0].index !== null) {
@@ -62,11 +64,11 @@ export default function OnboardingScreen() {
 
     const handleFinish = async () => {
         try {
-            await AsyncStorage.setItem('hasSeenOnboarding', 'true');
-            router.replace('/login');
+            await completeOnboarding();
         } catch (err) {
-            console.log('Error @setItem: ', err);
+            console.warn('Gagal menyimpan status onboarding:', err);
         }
+        router.replace('/login');
     };
 
     const scrollTo = async () => {
@@ -97,7 +99,7 @@ export default function OnboardingScreen() {
 
                     const backgroundColor = scrollX.interpolate({
                         inputRange,
-                        outputRange: ['#D1D5DB', '#059669', '#D1D5DB'],
+                        outputRange: ['#D1D5DB', '#047857', '#D1D5DB'],
                         extrapolate: 'clamp',
                     });
 
@@ -125,14 +127,14 @@ export default function OnboardingScreen() {
                 {/* Image Area */}
                 <View style={styles.imageContainer}>
                     {item.isLogo ? (
-                        <Image
+                        <Image accessibilityLabel="Logo Agrarian"
                             source={item.image}
                             style={styles.logoImage}
                             contentFit="contain"
                         />
                     ) : (
                         // Normal Slide Image
-                        <Image
+                        <Image accessibilityLabel={`Ilustrasi ${item.title}`}
                             source={item.image}
                             style={styles.image}
                             contentFit="contain"
@@ -158,7 +160,7 @@ export default function OnboardingScreen() {
 
             {/* Skip Button */}
             {currentIndex < onboardingData.length - 1 && (
-                <Pressable style={styles.skipButton} onPress={handleFinish}>
+                <Pressable accessibilityRole="button" hitSlop={8} style={[styles.skipButton, { top: insets.top + 12 }]} onPress={handleFinish}>
                     <ThemedText style={styles.skipText}>Lewati</ThemedText>
                 </Pressable>
             )}
@@ -173,6 +175,7 @@ export default function OnboardingScreen() {
                     pagingEnabled
                     bounces={false}
                     keyExtractor={(item) => item.id.toString()}
+                    getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
                     onScroll={Animated.event(
                         [{ nativeEvent: { contentOffset: { x: scrollX } } }],
                         { useNativeDriver: false }
@@ -185,7 +188,7 @@ export default function OnboardingScreen() {
             </View>
 
             {/* Footer Controls */}
-            <View style={styles.footer}>
+            <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
                 <Paginator data={onboardingData} scrollX={scrollX} />
 
                 <View style={styles.buttonContainer}>
@@ -204,6 +207,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#FFFFFF',
+        overflow: 'hidden',
     },
     decorativeCircle: {
         position: 'absolute',
@@ -224,7 +228,6 @@ const styles = StyleSheet.create({
     // Header / Skip
     skipButton: {
         position: 'absolute',
-        top: Platform.OS === 'ios' ? 60 : 50,
         right: 24,
         zIndex: 10,
         padding: 8,
@@ -282,7 +285,6 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'space-between',
         paddingHorizontal: 24,
-        paddingBottom: Platform.OS === 'ios' ? 50 : 30,
         width: '100%',
     },
     pagination: {
@@ -301,7 +303,7 @@ const styles = StyleSheet.create({
     },
     mainButton: {
         // Custom style override if needed, otherwise uses ThemedButton default
-        shadowColor: '#059669',
+        shadowColor: '#047857',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 8,

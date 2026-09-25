@@ -9,21 +9,19 @@ Agrarian adalah aplikasi mobile berbasis AI dan Machine Learning yang dirancang 
 - **My Garden Overview**: Lihat semua tanaman aktif dengan pelacakan progres.
 - **Quick Access Menu**: Akses cepat ke semua fitur utama.
 
-### AgraAI Chatbot
-- **AI Assistant 24/7**: Tanya jawab seputar pertanian, hama, pupuk, dan perawatan.
-- **Chat History**: Simpan riwayat percakapan untuk referensi nanti.
-- **Smart Responses**: Mendapat jawaban cerdas berdasarkan konteks pertanyaan.
+### AgraAI Chatbot *(dalam pengembangan)*
+- **UI & Chat History** sudah ada (riwayat tersimpan di perangkat).
+- Jawaban masih berupa respons contoh dan menu-nya disembunyikan dari Home; integrasi LLM ada di roadmap (`docs/BREAKDOWN.md`).
 
 ### Plant Recommendation System
 - **Wizard-based Flow**: Panduan langkah demi langkah untuk memilih tanaman terbaik.
 - **Location-based**: Rekomendasi berdasarkan lokasi, cuaca, dan kondisi lahan.
 - **Experience Level**: Disesuaikan dengan tingkat pengalaman Anda (Pemula/Menengah/Ahli).
 
-### Mission System (Daily Tasks)
-- **Daily Missions**: Tugas harian untuk merawat tanaman (siram, pupuk, cek hama).
-- **Streak System**: Bonus XP untuk konsistensi merawat tanaman.
-- **Progress Tracking**: Lihat perkembangan tanaman dari hari ke hari.
-- **Gamification**: Sistem level dan XP untuk motivasi lebih.
+### Mission System
+- **Rangkaian Misi**: Tugas bertahap per tanaman; menyelesaikan satu tugas membuka tugas berikutnya.
+- **Progress Tracking**: Progres, XP, dan level tersimpan di perangkat (AsyncStorage).
+- **Gamification**: Level naik setiap 500 XP, pencapaian terbuka berdasarkan progres nyata.
 
 ### Virtual Garden
 - **My Garden View**: Kelola semua tanaman Anda di satu tempat.
@@ -31,9 +29,10 @@ Agrarian adalah aplikasi mobile berbasis AI dan Machine Learning yang dirancang 
 - **Plant Cards**: Info lengkap setiap tanaman dengan visual menarik.
 
 ### User Profile
-- **Achievement System**: Koleksi lencana dan pencapaian.
-- **Statistics**: Total tanaman, streak, level, dan XP.
-- **Account Management**: Kelola profil dan preferensi.
+- **Achievement System**: Lencana terbuka otomatis dari progres misi.
+- **Statistics**: Level, jumlah tanaman, tugas selesai, dan XP.
+- **Sesi Login**: Login/daftar dengan validasi, sesi tersimpan, tombol Keluar.
+  (Autentikasi masih lokal di perangkat, belum ada server akun.)
 
 ## Tech Stack
 
@@ -47,7 +46,8 @@ Agrarian adalah aplikasi mobile berbasis AI dan Machine Learning yang dirancang 
   - Ionicons
   - Expo Image (Optimized image loading)
   - Custom animations (LayoutAnimation)
-- **Storage**: AsyncStorage (Local data persistence)
+- **Storage**: AsyncStorage (sesi login, progres misi, riwayat chat)
+- **State**: React Context (`lib/session.tsx`, `lib/garden-store.tsx`)
 - **Maps/Location**: Expo Location
 - **WebView**: React Native WebView (untuk integrasi ML)
 
@@ -105,12 +105,27 @@ Agrarian/
 │   ├── images/
 │   └── fonts/
 ├── components/                   # Reusable components
+│   ├── avatar.tsx                # Avatar inisial nama
+│   ├── not-found-state.tsx       # Tampilan "tidak ditemukan"
 │   ├── themed-text.tsx           # Themed text component
 │   ├── themed-button.tsx         # Themed button component
-│   ├── themed-view.tsx           # Themed view component
-│   └── parallax-scroll-view.tsx  # Parallax scrolling effect
-├── constants/                    # App constants & theme
-│   └── Colors.ts                 # Color palette
+│   └── themed-view.tsx           # Themed view component
+├── constants/
+│   ├── plants.ts                 # Data tanaman & rangkaian misi
+│   ├── crops.ts                  # Label model ML -> info tanaman (ID)
+│   └── theme.ts                  # Color palette
+├── lib/
+│   ├── api.ts                    # Client ML API
+│   ├── garden-store.tsx          # Progres misi, XP, level (tersimpan)
+│   ├── session.tsx               # Onboarding & sesi login (tersimpan)
+│   ├── http.ts                   # fetch + timeout
+│   ├── navigation.ts             # goBack dengan fallback (deep link / URL web)
+│   ├── alert.ts                  # Alert lintas platform (native & web)
+│   └── weather.ts                # Cuaca Open-Meteo
+├── __tests__/, lib/__tests__/    # Test Jest (unit & layar)
+├── e2e/                          # Test Playwright (alur utama)
+├── ml_agrarian/                  # ML API (FastAPI) + training scripts + tests
+├── docs/BREAKDOWN.md             # Analisis proyek & roadmap
 └── scripts/                      # Build & automation scripts
 ```
 
@@ -127,9 +142,23 @@ Lihat dokumentasi lengkap di `ml_agrarian/README.md`
 
 ## Debugging & Development
 
+### Pengecekan Kode
+```bash
+npm run lint        # ESLint
+npm run typecheck   # TypeScript
+npm test            # Jest: logika & layar
+npm run e2e         # Playwright: alur utama di build web (butuh browser Playwright)
+cd ml_agrarian && pip install -r requirements-dev.txt && python -m pytest   # test ML API
+```
+
+`npm run e2e` membangun versi web (`expo export`) lalu menjalankannya dengan `expo serve`.
+API ML dan cuaca di-mock, jadi tidak butuh internet. Jika browser belum terpasang:
+`npx playwright install chromium`.
+
 ### Reset Development Data
-- **Reset Onboarding**: Tekan tombol "Log Out (Dev)" di Home untuk reset
-- **Clear AsyncStorage**:
+- **Keluar akun**: Profil → tombol "Keluar"
+- **Reset onboarding & progres misi**: hapus data aplikasi (Android: Settings → Apps → Agrarian → Clear storage) atau uninstall Expo Go app data.
+- **Clear Metro cache**:
   ```bash
   npx expo start --clear
   ```

@@ -1,12 +1,14 @@
+import { NotFoundState } from '@/components/not-found-state';
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
-import { PLANTS_DATA } from '@/constants/plants';
+import { getPlantById } from '@/constants/plants';
+import { getPlantProgress, useGarden } from '@/lib/garden-store';
+import { goBack } from '@/lib/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-    Platform,
     Pressable,
     ScrollView,
     StatusBar,
@@ -18,19 +20,20 @@ import {
 
 
 export default function PlantDetailScreen() {
+    const insets = useSafeAreaInsets();
     const { id } = useLocalSearchParams();
-    const plant = PLANTS_DATA.find(p => p.id === id) || PLANTS_DATA[0];
+    const { taskStatus } = useGarden();
+    const plant = getPlantById(id);
+    if (!plant) {
+        return <NotFoundState title="Tanaman tidak ditemukan" message="Data tanaman ini tidak tersedia." />;
+    }
+    const { percent: progress } = getPlantProgress(plant, taskStatus);
 
-    const [tasks, setTasks] = useState(
-        plant.tasks.map(t => ({ ...t, completed: t.status === 'completed' }))
-    );
+    // Status tugas berasal dari progres misi yang tersimpan (read-only di sini).
+    const tasks = plant.tasks.map(t => ({ ...t, status: taskStatus[t.id] ?? t.status }));
 
-    // Hitung Progress
-    const completedCount = tasks.filter(t => t.completed).length;
-    const progress = (completedCount / tasks.length) * 100;
-
-    const handleToggle = (taskId: string) => {
-        setTasks(tasks.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t));
+    const handleTaskPress = (taskId: string) => {
+        router.push({ pathname: '/missions/task/[taskId]', params: { taskId } });
     };
 
     return (
@@ -38,24 +41,22 @@ export default function PlantDetailScreen() {
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
             {/* 1. SIMPLE HEADER */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+                <TouchableOpacity hitSlop={4} onPress={() => goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Kembali">
                     <Ionicons name="arrow-back" size={24} color="#1F2937" />
                 </TouchableOpacity>
                 <ThemedText type="subtitle" style={styles.headerTitle}>Detail Tanaman</ThemedText>
-                <TouchableOpacity>
-                    <Ionicons name="ellipsis-horizontal" size={24} color="#1F2937" />
-                </TouchableOpacity>
+                <View style={{ width: 40 }} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false}>
 
                 {/* 2. IMAGE CARD */}
                 <View style={styles.imageCard}>
-                    <Image source={{ uri: plant.image }} style={styles.plantImage} contentFit="cover" />
+                    <Image accessibilityLabel={`Foto tanaman ${plant.name}`} source={{ uri: plant.image }} style={styles.plantImage} contentFit="cover" />
                     <View style={styles.xpBadge}>
                         <Ionicons name="flash" size={14} color="#F59E0B" />
-                        <ThemedText style={styles.xpText}>Level 1</ThemedText>
+                        <ThemedText style={styles.xpText}>{plant.totalXp} XP</ThemedText>
                     </View>
                 </View>
 
@@ -80,26 +81,33 @@ export default function PlantDetailScreen() {
                 {/* 5. CLEAN TASK LIST */}
                 <ThemedText type="subtitle" style={styles.sectionTitle}>Daftar Tugas</ThemedText>
                 <View style={styles.taskList}>
-                    {tasks.map((task) => (
-                        <Pressable
-                            key={task.id}
-                            style={[styles.taskItem, task.completed && styles.taskItemDone]}
-                            onPress={() => handleToggle(task.id)}
-                        >
-                            <View style={[styles.checkbox, task.completed && styles.checkboxDone]}>
-                                {task.completed && <Ionicons name="checkmark" size={14} color="#fff" />}
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <ThemedText type="defaultSemiBold" style={[styles.taskTitle, task.completed && styles.textDone]}>{task.title}</ThemedText>
-                                <ThemedText style={styles.taskXp}>+{task.xp} XP</ThemedText>
-                            </View>
-                        </Pressable>
-                    ))}
+                    {tasks.map((task) => {
+                        const completed = task.status === 'completed';
+                        const locked = task.status === 'locked';
+                        return (
+                            <Pressable accessibilityRole="button" accessibilityState={{ disabled: locked }}
+                                key={task.id}
+                                style={[styles.taskItem, completed && styles.taskItemDone, locked && styles.taskItemLocked]}
+                                onPress={() => handleTaskPress(task.id)}
+                                disabled={locked}
+                            >
+                                <View style={[styles.checkbox, completed && styles.checkboxDone]}>
+                                    {completed && <Ionicons name="checkmark" size={14} color="#fff" />}
+                                    {locked && <Ionicons name="lock-closed" size={12} color="#9CA3AF" />}
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <ThemedText type="defaultSemiBold" style={[styles.taskTitle, completed && styles.textDone]}>{task.title}</ThemedText>
+                                    <ThemedText style={styles.taskXp}>+{task.xp} XP</ThemedText>
+                                </View>
+                                {task.status === 'active' && <Ionicons name="chevron-forward" size={18} color="#047857" />}
+                            </Pressable>
+                        );
+                    })}
                 </View>
             </ScrollView>
 
             {/* 6. BOTTOM BUTTON */}
-            <View style={styles.footer}>
+            <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
                 <ThemedButton
                     title="Mulai Berkebun"
                     onPress={() => router.push({ pathname: '/missions/[id]', params: { id: plant.id } })}
@@ -121,7 +129,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
-        paddingTop: Platform.OS === 'ios' ? 60 : 40,
         paddingBottom: 10,
         backgroundColor: '#fff',
     },
@@ -166,7 +173,7 @@ const styles = StyleSheet.create({
     xpText: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: '#F59E0B',
+        color: '#B45309',
     },
     // Info
     infoSection: {
@@ -180,7 +187,7 @@ const styles = StyleSheet.create({
     },
     plantLatin: {
         fontSize: 14,
-        color: '#4ADE80', // Green accent
+        color: '#047857', // Green accent
         fontWeight: '600',
         marginBottom: 12,
         fontStyle: 'italic',
@@ -205,7 +212,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     label: { fontSize: 14, fontWeight: '600', color: '#374151' },
-    percent: { fontSize: 14, fontWeight: '700', color: '#059669' },
+    percent: { fontSize: 14, fontWeight: '700', color: '#047857' },
     track: {
         height: 8,
         backgroundColor: '#E5E7EB',
@@ -214,7 +221,7 @@ const styles = StyleSheet.create({
     },
     fill: {
         height: '100%',
-        backgroundColor: '#059669', // Solid Green
+        backgroundColor: '#047857', // Solid Green
         borderRadius: 4,
     },
     // Tasks
@@ -240,6 +247,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#F9FAFB',
         borderColor: 'transparent',
     },
+    taskItemLocked: {
+        opacity: 0.6,
+    },
     checkbox: {
         width: 24,
         height: 24,
@@ -251,8 +261,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     checkboxDone: {
-        backgroundColor: '#059669',
-        borderColor: '#059669',
+        backgroundColor: '#047857',
+        borderColor: '#047857',
     },
     taskTitle: {
         fontSize: 16,
@@ -260,12 +270,12 @@ const styles = StyleSheet.create({
         color: '#1F2937',
     },
     textDone: {
-        color: '#9CA3AF',
+        color: '#6B7280',
         textDecorationLine: 'line-through',
     },
     taskXp: {
         fontSize: 12,
-        color: '#F59E0B',
+        color: '#B45309',
         marginTop: 2,
     },
     // Footer
@@ -278,14 +288,14 @@ const styles = StyleSheet.create({
         borderTopColor: '#F3F4F6',
     },
     mainButton: {
-        backgroundColor: '#059669', // Primary Green
+        backgroundColor: '#047857', // Primary Green
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 16,
         borderRadius: 16,
         gap: 8,
-        shadowColor: '#059669',
+        shadowColor: '#047857',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 8,

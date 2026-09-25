@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'react-native';
 import { ThemedText } from './themed-text';
 
@@ -7,6 +8,8 @@ export type ThemedButtonProps = Omit<PressableProps, 'style'> & {
     disabled?: boolean;
     fullWidth?: boolean;
     style?: ViewStyle;
+    /** Ikon opsional di kiri judul. */
+    icon?: ReactNode;
 };
 
 export function ThemedButton({
@@ -15,10 +18,12 @@ export function ThemedButton({
     disabled = false,
     fullWidth = true,
     style,
+    icon,
     ...rest
 }: ThemedButtonProps) {
     const buttonStyles: ViewStyle[] = [
         styles.button,
+        icon ? styles.withIcon : {},
         fullWidth ? styles.fullWidth : {},
         variant === 'primary' ? (disabled ? styles.buttonInactive : styles.buttonActive) : {},
         variant === 'secondary' ? styles.buttonSecondary : {},
@@ -37,8 +42,11 @@ export function ThemedButton({
         <Pressable
             style={buttonStyles}
             disabled={disabled}
+            accessibilityRole="button"
+            accessibilityState={{ disabled }}
             {...rest}
         >
+            {icon}
             <ThemedText style={textStyles}>
                 {title}
             </ThemedText>
@@ -59,6 +67,10 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 3,
     },
+    withIcon: {
+        flexDirection: 'row',
+        gap: 8,
+    },
     fullWidth: {
         width: '100%',
     },
@@ -67,7 +79,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#E0E0E0',
     },
     buttonActive: {
-        backgroundColor: '#059669',
+        backgroundColor: '#047857',
     },
     buttonTextInactive: {
         color: '#999',
@@ -86,7 +98,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#E8F5E9',
     },
     buttonTextSecondary: {
-        color: '#4CAF50',
+        color: '#047857',
         fontSize: 16,
         fontWeight: '600',
         fontFamily: 'Inter_600SemiBold',
@@ -95,10 +107,10 @@ const styles = StyleSheet.create({
     buttonOutline: {
         backgroundColor: 'transparent',
         borderWidth: 2,
-        borderColor: '#4CAF50',
+        borderColor: '#047857',
     },
     buttonTextOutline: {
-        color: '#4CAF50',
+        color: '#047857',
         fontSize: 16,
         fontWeight: '600',
         fontFamily: 'Inter_600SemiBold',
