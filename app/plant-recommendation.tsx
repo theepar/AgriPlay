@@ -312,6 +312,9 @@ export default function PlantRecommendationScreen() {
                                     ref={webViewRef}
                                     style={styles.mapWebView}
                                     source={{ html: mapHtml }}
+                                    // Peta tidak boleh berpindah halaman; tautan lain (mis. atribusi) dibuka di browser sistem.
+                                    originWhitelist={['about:blank']}
+                                    setSupportMultipleWindows={false}
                                     // Peta dibuat ulang saat kembali ke langkah ini; pulihkan titik yang dipilih.
                                     onLoadEnd={() => hasPickedLocation && moveMarker(coordinates)}
                                     onMessage={(event) => {
