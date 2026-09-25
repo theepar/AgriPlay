@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'react-native';
 import { ThemedText } from './themed-text';
 
@@ -7,6 +8,8 @@ export type ThemedButtonProps = Omit<PressableProps, 'style'> & {
     disabled?: boolean;
     fullWidth?: boolean;
     style?: ViewStyle;
+    /** Ikon opsional di kiri judul. */
+    icon?: ReactNode;
 };
 
 export function ThemedButton({
@@ -15,10 +18,12 @@ export function ThemedButton({
     disabled = false,
     fullWidth = true,
     style,
+    icon,
     ...rest
 }: ThemedButtonProps) {
     const buttonStyles: ViewStyle[] = [
         styles.button,
+        icon ? styles.withIcon : {},
         fullWidth ? styles.fullWidth : {},
         variant === 'primary' ? (disabled ? styles.buttonInactive : styles.buttonActive) : {},
         variant === 'secondary' ? styles.buttonSecondary : {},
@@ -39,6 +44,7 @@ export function ThemedButton({
             disabled={disabled}
             {...rest}
         >
+            {icon}
             <ThemedText style={textStyles}>
                 {title}
             </ThemedText>
@@ -58,6 +64,10 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3,
+    },
+    withIcon: {
+        flexDirection: 'row',
+        gap: 8,
     },
     fullWidth: {
         width: '100%',

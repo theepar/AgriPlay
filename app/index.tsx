@@ -1,12 +1,15 @@
+import { Avatar } from '@/components/avatar';
 import { ThemedText } from '@/components/themed-text';
 import { PLANTS_DATA } from '@/constants/plants';
+import { getPlantProgress, useGarden } from '@/lib/garden-store';
+import { useSession } from '@/lib/session';
+import { fetchCurrentWeather, type CurrentWeather } from '@/lib/weather';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Redirect, router } from 'expo-router';
+import { useEffect, useState, type ComponentProps } from 'react';
 import {
     ActivityIndicator,
     Dimensions,
@@ -20,35 +23,43 @@ import {
 
 const { width } = Dimensions.get('window');
 
-// Types untuk weather
-interface WeatherData {
-    temp: number;
-    description: string;
-    icon: string;
+interface WeatherData extends CurrentWeather {
     location: string;
 }
 
-export default function HomeScreen() {
-    // Transform PLANTS_DATA to match home screen format (only first 3 plants)
-    const [myPlants] = useState(
-        PLANTS_DATA.slice(0, 3).map(plant => ({
-            id: parseInt(plant.id),
+const FALLBACK_WEATHER: WeatherData = {
+    temp: 27,
+    description: 'Cerah Berawan',
+    icon: 'partly-sunny',
+    location: 'Bandung',
+};
+
+// Rute "/" menjadi gerbang: arahkan ke onboarding/login jika belum login.
+export default function IndexRoute() {
+    const { user, seenOnboarding } = useSession();
+    if (!user) {
+        return <Redirect href={seenOnboarding ? '/login' : '/onboarding'} />;
+    }
+    return <HomeScreen userName={user.name} />;
+}
+
+function HomeScreen({ userName }: { userName: string }) {
+    const { taskStatus } = useGarden();
+    const myPlants = PLANTS_DATA.slice(0, 3).map(plant => {
+        const { percent, activeTask } = getPlantProgress(plant, taskStatus);
+        return {
+            id: plant.id,
             name: plant.name,
-            startDate: '9 Nov 2025', // You can make this dynamic too
-            progress: plant.progress,
-            reminder: plant.progress < 50, // Auto reminder if progress < 50%
+            nextStep: activeTask ? `Berikutnya: ${activeTask.title}` : 'Semua misi selesai 🎉',
+            progress: percent,
+            reminder: percent < 50,
             color: plant.color,
             image: plant.image,
-        }))
-    );
+        };
+    });
 
     // Weather state
-    const [weather, setWeather] = useState<WeatherData>({
-        temp: 27,
-        description: 'Memuat...',
-        icon: 'partly-sunny',
-        location: 'Memuat lokasi...',
-    });
+    const [weather, setWeather] = useState<WeatherData>(FALLBACK_WEATHER);
     const [loadingWeather, setLoadingWeather] = useState(true);
 
     // Fetch weather data
@@ -60,15 +71,7 @@ export default function HomeScreen() {
         try {
             // 1. Get location permission
             const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') {
-                setWeather(prev => ({
-                    ...prev,
-                    description: 'Cerah Berawan',
-                    location: 'Bandung',
-                }));
-                setLoadingWeather(false);
-                return;
-            }
+            if (status !== 'granted') return;
 
             // 2. Get current location with LOW accuracy for speed
             const location = await Location.getCurrentPositionAsync({
@@ -79,84 +82,25 @@ export default function HomeScreen() {
             // 3. Fetch location name & weather in PARALLEL for speed
             const [addressResult, weatherResult] = await Promise.allSettled([
                 Location.reverseGeocodeAsync({ latitude, longitude }),
-                fetch(
-                    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`,
-                    { signal: AbortSignal.timeout(5000) } // 5 sec timeout
-                )
+                fetchCurrentWeather(latitude, longitude),
             ]);
 
-            // Get location name
             let locationName = 'Lokasi Tidak Diketahui';
             if (addressResult.status === 'fulfilled' && addressResult.value[0]) {
-                locationName = addressResult.value[0].city || addressResult.value[0].subregion || 'Lokasi Tidak Diketahui';
+                locationName = addressResult.value[0].city || addressResult.value[0].subregion || locationName;
             }
 
-            // Process weather (using Open-Meteo - no API key needed, faster)
-            if (weatherResult.status === 'fulfilled' && weatherResult.value.ok) {
-                const weatherData = await weatherResult.value.json();
-                const current = weatherData.current_weather;
-                const temp = Math.round(current.temperature);
-                const code = current.weathercode;
-
-                // Map weather code to description
-                let weatherDescription = 'Cerah';
-                let iconName = 'sunny';
-
-                if (code === 0) {
-                    weatherDescription = 'Cerah';
-                    iconName = 'sunny';
-                } else if (code >= 1 && code <= 3) {
-                    weatherDescription = 'Berawan';
-                    iconName = 'partly-sunny';
-                } else if (code >= 45 && code <= 48) {
-                    weatherDescription = 'Berkabut';
-                    iconName = 'cloudy';
-                } else if (code >= 51 && code <= 67) {
-                    weatherDescription = 'Hujan Ringan';
-                    iconName = 'rainy';
-                } else if (code >= 80 && code <= 82) {
-                    weatherDescription = 'Hujan Deras';
-                    iconName = 'rainy';
-                } else if (code >= 95 && code <= 99) {
-                    weatherDescription = 'Hujan Petir';
-                    iconName = 'thunderstorm';
-                }
-
-                setWeather({
-                    temp,
-                    description: weatherDescription,
-                    icon: iconName,
-                    location: locationName,
-                });
-            } else {
-                // Fallback if API fails
-                setWeather({
-                    temp: 27,
-                    description: 'Cerah Berawan',
-                    icon: 'partly-sunny',
-                    location: locationName,
-                });
-            }
+            const current = weatherResult.status === 'fulfilled' ? weatherResult.value : FALLBACK_WEATHER;
+            setWeather({ ...current, location: locationName });
         } catch (error) {
-            console.log('Weather fetch error:', error);
-            setWeather({
-                temp: 27,
-                description: 'Cerah Berawan',
-                icon: 'partly-sunny',
-                location: 'Bandung',
-            });
+            console.warn('Weather fetch error:', error);
         } finally {
             setLoadingWeather(false);
         }
     };
 
-    const handleLogout = async () => {
-        await AsyncStorage.removeItem('hasSeenOnboarding');
-        router.replace('/onboarding');
-    };
-
-    const handlePlantDetail = (plantId: number) => {
-        router.push({ pathname: '/missions/[id]', params: { id: plantId.toString() } });
+    const handlePlantDetail = (plantId: string) => {
+        router.push({ pathname: '/missions/[id]', params: { id: plantId } });
     };
 
     return (
@@ -176,16 +120,12 @@ export default function HomeScreen() {
 
                 <View style={styles.headerContentWrapper}>
                     <View style={styles.header}>
-                        <View>
-                            <ThemedText style={styles.greeting}>Halo, Petani Muda! 🌱</ThemedText>
+                        <View style={{ flex: 1, marginRight: 12 }}>
+                            <ThemedText style={styles.greeting} numberOfLines={1}>Halo, {userName}! 🌱</ThemedText>
                             <ThemedText style={styles.subGreeting}>Siap merawat tanamanmu hari ini?</ThemedText>
                         </View>
                         <Pressable style={styles.profileBtn} onPress={() => router.push('/profile')}>
-                            <Image
-                                source={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=400&auto=format&fit=crop' }}
-                                style={styles.profileImage}
-                                contentFit="cover"
-                            />
+                            <Avatar name={userName} size={44} />
                         </Pressable>
                     </View>
 
@@ -199,7 +139,7 @@ export default function HomeScreen() {
                                     <ThemedText style={styles.weatherTemp}>{weather.temp}°</ThemedText>
                                     <ThemedText style={styles.weatherDesc}>{weather.description} • {weather.location}</ThemedText>
                                 </View>
-                                <Ionicons name={weather.icon as any} size={56} color="#F59E0B" />
+                                <Ionicons name={weather.icon} size={56} color="#F59E0B" />
                             </>
                         )}
                     </View>
@@ -248,7 +188,7 @@ export default function HomeScreen() {
 
                             <View style={styles.plantInfo}>
                                 <ThemedText style={styles.plantName}>{plant.name}</ThemedText>
-                                <ThemedText style={styles.plantDate}>{plant.startDate}</ThemedText>
+                                <ThemedText style={styles.plantDate} numberOfLines={1}>{plant.nextStep}</ThemedText>
                                 <View style={styles.progressContainer}>
                                     <View style={styles.progressTrack}>
                                         <View style={[styles.progressFill, { width: `${plant.progress}%`, backgroundColor: plant.color }]} />
@@ -277,7 +217,16 @@ export default function HomeScreen() {
 }
 
 // Helper Component for Menu Grid
-const MenuCard = ({ title, subtitle, icon, color, onPress, fullWidth }: any) => (
+interface MenuCardProps {
+    title: string;
+    subtitle: string;
+    icon: ComponentProps<typeof Ionicons>['name'];
+    color: string;
+    onPress: () => void;
+    fullWidth?: boolean;
+}
+
+const MenuCard = ({ title, subtitle, icon, color, onPress, fullWidth }: MenuCardProps) => (
     <Pressable style={[styles.menuCard, fullWidth && styles.menuCardFullWidth]} onPress={onPress}>
         <View style={[styles.menuIconBg, { backgroundColor: color + '15' }]}>
             <Ionicons name={icon} size={28} color={color} />
@@ -364,10 +313,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.3)',
         overflow: 'hidden',
-    },
-    profileImage: {
-        width: '100%',
-        height: '100%',
     },
 
     // Weather Card (Inside Fixed Area)
@@ -568,15 +513,5 @@ const styles = StyleSheet.create({
         top: 18,
         right: 18,
         opacity: 0.4,
-    },
-
-    logoutBtn: {
-        marginTop: 40,
-        alignSelf: 'center',
-        padding: 10,
-    },
-    logoutText: {
-        fontSize: 13,
-        color: '#9CA3AF',
     },
 });

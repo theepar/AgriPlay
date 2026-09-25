@@ -1,5 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
 import { PLANTS_DATA } from '@/constants/plants';
+import { getPlantProgress, useGarden } from '@/lib/garden-store';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -22,18 +23,6 @@ const { width } = Dimensions.get('window');
 const PADDING_HORIZONTAL = 24;
 const GAP = 16;
 const COLUMN_WIDTH = (width - (PADDING_HORIZONTAL * 2) - GAP) / 2;
-
-// --- DATA: MY PLANTS ---
-const MY_PROFILE = {
-    name: 'Agra Master',
-    plants: PLANTS_DATA.map((plant, index) => ({
-        id: Number(plant.id),
-        name: plant.name,
-        status: ['Siap Panen', 'Berbunga', 'Butuh Air', 'Tumbuh', 'Bibit'][index] || 'Tumbuh',
-        color: plant.color,
-        image: plant.image
-    }))
-};
 
 // --- DATA: OTHER GARDENS (COMMUNITY) ---
 const OTHER_GARDENS = [
@@ -143,12 +132,22 @@ export default function VirtualGardenScreen() {
 
 // --- SUB-COMPONENT: MY GARDEN (Grid View) ---
 function MyGardenView({ searchQuery }: { searchQuery: string }) {
-    const filteredPlants = MY_PROFILE.plants.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const { taskStatus } = useGarden();
+    const filteredPlants = PLANTS_DATA
+        .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        .map(plant => {
+            const { activeTask } = getPlantProgress(plant, taskStatus);
+            return {
+                id: plant.id,
+                name: plant.name,
+                status: activeTask ? activeTask.title : 'Siap Panen',
+                color: plant.color,
+                image: plant.image,
+            };
+        });
 
-    const handlePlantPress = (plantId: number) => {
-        router.push({ pathname: '/plant-detail', params: { id: plantId.toString() } });
+    const handlePlantPress = (plantId: string) => {
+        router.push({ pathname: '/plant-detail', params: { id: plantId } });
     };
 
     return (
@@ -163,7 +162,7 @@ function MyGardenView({ searchQuery }: { searchQuery: string }) {
                         <View style={styles.plantImageWrapper}>
                             <Image source={{ uri: plant.image }} style={styles.plantImage} contentFit="cover" />
                             <View style={[styles.statusBadge, { backgroundColor: plant.color }]}>
-                                <ThemedText style={styles.statusText}>{plant.status}</ThemedText>
+                                <ThemedText style={styles.statusText} numberOfLines={1}>{plant.status}</ThemedText>
                             </View>
                         </View>
                         <View style={styles.plantCardContent}>
@@ -338,7 +337,7 @@ const styles = StyleSheet.create({
     plantImageWrapper: { height: 120, position: 'relative' },
     plantImage: { width: '100%', height: '100%' },
     statusBadge: {
-        position: 'absolute', top: 8, left: 8,
+        position: 'absolute', top: 8, left: 8, maxWidth: COLUMN_WIDTH - 16,
         paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6,
     },
     statusText: { color: '#FFF', fontSize: 10, fontWeight: '700' },

@@ -1,8 +1,11 @@
 import { ThemedText } from '@/components/themed-text';
+import { EMAIL_PATTERN, resetTo, useSession } from '@/lib/session';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
+    Alert,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -19,15 +22,37 @@ export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [submitting, setSubmitting] = useState(false);
+    const { user, signIn } = useSession();
 
-    const handleLogin = () => {
-        console.log('Login:', { email, password });
-        router.replace('/');
+    // Pindah ke beranda setelah sesi tersimpan (state sudah ter-update).
+    useEffect(() => {
+        if (user) resetTo('/');
+    }, [user]);
+
+    const handleLogin = async () => {
+        const trimmedEmail = email.trim().toLowerCase();
+        if (!EMAIL_PATTERN.test(trimmedEmail)) {
+            setError('Masukkan alamat email yang valid.');
+            return;
+        }
+        if (!password) {
+            setError('Password wajib diisi.');
+            return;
+        }
+        setError(null);
+        setSubmitting(true);
+        try {
+            await signIn(trimmedEmail);
+        } catch {
+            setError('Gagal masuk. Coba lagi.');
+            setSubmitting(false);
+        }
     };
 
     const handleSocialLogin = (provider: string) => {
-        console.log('Social login with:', provider);
-        router.replace('/');
+        Alert.alert('Segera Hadir', `Login dengan ${provider} belum tersedia. Silakan masuk dengan email.`);
     };
 
     return (
@@ -72,6 +97,8 @@ export default function LoginScreen() {
                                     onChangeText={setEmail}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
+                                    autoComplete="email"
+                                    textContentType="emailAddress"
                                 />
                             </View>
                         </View>
@@ -89,6 +116,9 @@ export default function LoginScreen() {
                                     onChangeText={setPassword}
                                     secureTextEntry={!showPassword}
                                     autoCapitalize="none"
+                                    autoComplete="password"
+                                    textContentType="password"
+                                    onSubmitEditing={handleLogin}
                                 />
                                 <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
                                     <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={20} color="#9CA3AF" />
@@ -99,13 +129,27 @@ export default function LoginScreen() {
                             </Pressable>
                         </View>
 
+                        {error && (
+                            <View style={styles.errorBox}>
+                                <Ionicons name="alert-circle" size={18} color="#DC2626" />
+                                <ThemedText style={styles.errorText}>{error}</ThemedText>
+                            </View>
+                        )}
+
                         {/* Login Button */}
                         <Pressable
-                            style={styles.loginButton}
+                            style={[styles.loginButton, submitting && { opacity: 0.7 }]}
                             onPress={handleLogin}
+                            disabled={submitting}
                         >
-                            <ThemedText style={styles.loginButtonText}>Masuk</ThemedText>
-                            <Ionicons name="arrow-forward" size={20} color="#fff" />
+                            {submitting ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <>
+                                    <ThemedText style={styles.loginButtonText}>Masuk</ThemedText>
+                                    <Ionicons name="arrow-forward" size={20} color="#fff" />
+                                </>
+                            )}
                         </Pressable>
                     </View>
 
@@ -118,13 +162,13 @@ export default function LoginScreen() {
                         </View>
 
                         <View style={styles.socialRow}>
-                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('google')}>
+                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('Google')}>
                                 <Ionicons name="logo-google" size={24} color="#DB4437" />
                             </Pressable>
-                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('apple')}>
+                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('Apple')}>
                                 <Ionicons name="logo-apple" size={24} color="#000" />
                             </Pressable>
-                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('facebook')}>
+                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('Facebook')}>
                                 <Ionicons name="logo-facebook" size={24} color="#1877F2" />
                             </Pressable>
                         </View>
@@ -236,6 +280,20 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#059669',
         fontWeight: '600',
+    },
+    errorBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: '#FEF2F2',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 4,
+    },
+    errorText: {
+        flex: 1,
+        fontSize: 13,
+        color: '#B91C1C',
     },
     loginButton: {
         backgroundColor: '#059669', // Emerald Primary

@@ -1,9 +1,12 @@
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
-import { PLANTS_DATA } from '@/constants/plants';
+import { findTask } from '@/constants/plants';
+import { useGarden } from '@/lib/garden-store';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import {
+    Alert,
     Dimensions,
     Platform,
     ScrollView,
@@ -17,9 +20,12 @@ const { width } = Dimensions.get('window');
 
 export default function TaskDetailScreen() {
     const { taskId } = useLocalSearchParams();
+    const { taskStatus, completeTask } = useGarden();
+    const [submitting, setSubmitting] = useState(false);
 
     // Find the task across all plants
-    const foundTask = PLANTS_DATA.flatMap(p => p.tasks).find(t => t.id === taskId);
+    const foundTask = findTask(taskId)?.task;
+    const status = foundTask ? taskStatus[foundTask.id] : 'locked';
 
     // Default/Fallback data if task not found or for missing fields
     const task = foundTask ? {
@@ -48,6 +54,15 @@ export default function TaskDetailScreen() {
         description: 'Detail tugas tidak tersedia.',
         requirements: [],
         steps: []
+    };
+
+    const handleComplete = () => {
+        if (!foundTask) return;
+        setSubmitting(true);
+        const xpGained = completeTask(foundTask.id);
+        Alert.alert('Tugas Selesai! 🎉', `Kamu mendapatkan +${xpGained} XP. Tugas berikutnya sudah terbuka.`, [
+            { text: 'Lanjut', onPress: () => router.back() },
+        ]);
     };
 
     return (
@@ -147,12 +162,10 @@ export default function TaskDetailScreen() {
             {/* FOOTER ACTION */}
             <View style={styles.footer}>
                 <ThemedButton
-                    title="Tandai Selesai"
+                    title={status === 'completed' ? 'Sudah Selesai ✓' : status === 'locked' ? 'Masih Terkunci' : 'Tandai Selesai'}
                     variant="primary"
-                    onPress={() => {
-                        console.log("Task Completed");
-                        router.back();
-                    }}
+                    disabled={status !== 'active' || submitting}
+                    onPress={handleComplete}
                 />
             </View>
         </View>

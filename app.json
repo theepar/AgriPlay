@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "agrarian",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
@@ -39,6 +39,12 @@
           }
         }
       ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Agrarian menggunakan lokasi Anda untuk menampilkan cuaca dan merekomendasikan tanaman yang cocok dengan iklim lahan Anda."
+        }
+      ],
       "expo-font",
       "expo-web-browser"
     ],
@@ -46,10 +52,6 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "permissions": [
-      "LOCATION",
-      "FOREGROUND_SERVICE"
-    ],
     "extra": {
       "router": {},
       "eas": {

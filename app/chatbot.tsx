@@ -58,35 +58,18 @@ export default function ChatbotScreen() {
 
     // Auto scroll & Save saat pesan bertambah
     useEffect(() => {
-        if (messages.length > 0) {
-            setTimeout(() => {
-                flatListRef.current?.scrollToEnd({ animated: true });
-            }, 100);
-            saveCurrentSession();
-        }
-    }, [messages]);
+        if (messages.length === 0) return;
+        setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
 
-    // --- Logic Storage & Session ---
-    const loadSessions = async () => {
-        try {
-            const data = await AsyncStorage.getItem('chat_sessions');
-            if (data) setSessions(JSON.parse(data));
-        } catch (error) {
-            console.error('Error loading sessions', error);
-        }
-    };
-
-    const saveCurrentSession = async () => {
-        const firstMsgText = messages[0]?.text || '';
-        const titleSnippet = firstMsgText.length > 0
-            ? (firstMsgText.substring(0, 30) + (firstMsgText.length > 30 ? '...' : ''))
-            : 'Percakapan Baru';
-
+        const firstMsgText = messages[0].text;
         const sessionData: ChatSession = {
             id: currentSessionId,
-            title: titleSnippet,
+            title: firstMsgText.substring(0, 30) + (firstMsgText.length > 30 ? '...' : ''),
             messages: messages,
-            lastModified: Date.now(),
+            // Pakai waktu pesan terakhir agar membuka riwayat lama tidak mengubah tanggalnya.
+            lastModified: messages[messages.length - 1].timestamp,
         };
 
         setSessions(prevSessions => {
@@ -102,6 +85,16 @@ export default function ChatbotScreen() {
             AsyncStorage.setItem('chat_sessions', JSON.stringify(updatedSessions)).catch(err => console.error(err));
             return updatedSessions;
         });
+    }, [messages, currentSessionId]);
+
+    // --- Logic Storage & Session ---
+    const loadSessions = async () => {
+        try {
+            const data = await AsyncStorage.getItem('chat_sessions');
+            if (data) setSessions(JSON.parse(data));
+        } catch (error) {
+            console.error('Error loading sessions', error);
+        }
     };
 
     const startNewChat = () => {

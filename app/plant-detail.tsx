@@ -1,10 +1,10 @@
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
-import { PLANTS_DATA } from '@/constants/plants';
+import { getPlantById, PLANTS_DATA } from '@/constants/plants';
+import { getPlantProgress, useGarden } from '@/lib/garden-store';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
 import {
     Platform,
     Pressable,
@@ -19,18 +19,15 @@ import {
 
 export default function PlantDetailScreen() {
     const { id } = useLocalSearchParams();
-    const plant = PLANTS_DATA.find(p => p.id === id) || PLANTS_DATA[0];
+    const plant = getPlantById(id) ?? PLANTS_DATA[0];
+    const { taskStatus } = useGarden();
+    const { percent: progress } = getPlantProgress(plant, taskStatus);
 
-    const [tasks, setTasks] = useState(
-        plant.tasks.map(t => ({ ...t, completed: t.status === 'completed' }))
-    );
+    // Status tugas berasal dari progres misi yang tersimpan (read-only di sini).
+    const tasks = plant.tasks.map(t => ({ ...t, status: taskStatus[t.id] ?? t.status }));
 
-    // Hitung Progress
-    const completedCount = tasks.filter(t => t.completed).length;
-    const progress = (completedCount / tasks.length) * 100;
-
-    const handleToggle = (taskId: string) => {
-        setTasks(tasks.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t));
+    const handleTaskPress = (taskId: string) => {
+        router.push({ pathname: '/missions/task/[taskId]', params: { taskId } });
     };
 
     return (
@@ -55,7 +52,7 @@ export default function PlantDetailScreen() {
                     <Image source={{ uri: plant.image }} style={styles.plantImage} contentFit="cover" />
                     <View style={styles.xpBadge}>
                         <Ionicons name="flash" size={14} color="#F59E0B" />
-                        <ThemedText style={styles.xpText}>Level 1</ThemedText>
+                        <ThemedText style={styles.xpText}>{plant.totalXp} XP</ThemedText>
                     </View>
                 </View>
 
@@ -80,21 +77,28 @@ export default function PlantDetailScreen() {
                 {/* 5. CLEAN TASK LIST */}
                 <ThemedText type="subtitle" style={styles.sectionTitle}>Daftar Tugas</ThemedText>
                 <View style={styles.taskList}>
-                    {tasks.map((task) => (
-                        <Pressable
-                            key={task.id}
-                            style={[styles.taskItem, task.completed && styles.taskItemDone]}
-                            onPress={() => handleToggle(task.id)}
-                        >
-                            <View style={[styles.checkbox, task.completed && styles.checkboxDone]}>
-                                {task.completed && <Ionicons name="checkmark" size={14} color="#fff" />}
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <ThemedText type="defaultSemiBold" style={[styles.taskTitle, task.completed && styles.textDone]}>{task.title}</ThemedText>
-                                <ThemedText style={styles.taskXp}>+{task.xp} XP</ThemedText>
-                            </View>
-                        </Pressable>
-                    ))}
+                    {tasks.map((task) => {
+                        const completed = task.status === 'completed';
+                        const locked = task.status === 'locked';
+                        return (
+                            <Pressable
+                                key={task.id}
+                                style={[styles.taskItem, completed && styles.taskItemDone, locked && styles.taskItemLocked]}
+                                onPress={() => handleTaskPress(task.id)}
+                                disabled={locked}
+                            >
+                                <View style={[styles.checkbox, completed && styles.checkboxDone]}>
+                                    {completed && <Ionicons name="checkmark" size={14} color="#fff" />}
+                                    {locked && <Ionicons name="lock-closed" size={12} color="#9CA3AF" />}
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <ThemedText type="defaultSemiBold" style={[styles.taskTitle, completed && styles.textDone]}>{task.title}</ThemedText>
+                                    <ThemedText style={styles.taskXp}>+{task.xp} XP</ThemedText>
+                                </View>
+                                {task.status === 'active' && <Ionicons name="chevron-forward" size={18} color="#059669" />}
+                            </Pressable>
+                        );
+                    })}
                 </View>
             </ScrollView>
 
@@ -239,6 +243,9 @@ const styles = StyleSheet.create({
     taskItemDone: {
         backgroundColor: '#F9FAFB',
         borderColor: 'transparent',
+    },
+    taskItemLocked: {
+        opacity: 0.6,
     },
     checkbox: {
         width: 24,

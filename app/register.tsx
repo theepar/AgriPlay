@@ -1,8 +1,11 @@
 import { ThemedText } from '@/components/themed-text';
+import { EMAIL_PATTERN, MIN_PASSWORD_LENGTH, resetTo, useSession } from '@/lib/session';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
+    Alert,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -22,19 +25,45 @@ export default function RegisterScreen() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [submitting, setSubmitting] = useState(false);
+    const { user, signIn } = useSession();
 
-    const handleRegister = () => {
-        if (password !== confirmPassword) {
-            alert('Password tidak cocok!');
-            return;
+    // Pindah ke beranda setelah sesi tersimpan (state sudah ter-update).
+    useEffect(() => {
+        if (user) resetTo('/');
+    }, [user]);
+
+    const validate = (): string | null => {
+        if (username.trim().length < 3) return 'Username minimal 3 karakter.';
+        if (!EMAIL_PATTERN.test(email.trim())) return 'Masukkan alamat email yang valid.';
+        if (password.length < MIN_PASSWORD_LENGTH) return `Password minimal ${MIN_PASSWORD_LENGTH} karakter.`;
+        if (password !== confirmPassword) return 'Konfirmasi password tidak cocok.';
+        return null;
+    };
+
+    const handleRegister = async () => {
+        const validationError = validate();
+        setError(validationError);
+        if (validationError) return;
+
+        setSubmitting(true);
+        try {
+            // Belum ada backend: akun disimpan lokal dan langsung login.
+            await signIn(email.trim().toLowerCase(), username.trim());
+        } catch {
+            setError('Gagal mendaftar. Coba lagi.');
+            setSubmitting(false);
         }
-        console.log('Register:', { username, email, password });
-        router.replace('/login');
     };
 
     const handleSocialLogin = (provider: string) => {
-        console.log('Social login with:', provider);
-        router.replace('/');
+        Alert.alert('Segera Hadir', `Daftar dengan ${provider} belum tersedia. Silakan daftar dengan email.`);
+    };
+
+    const goToLogin = () => {
+        if (router.canGoBack()) router.back();
+        else router.replace('/login');
     };
 
     return (
@@ -139,13 +168,27 @@ export default function RegisterScreen() {
                             </View>
                         </View>
 
+                        {error && (
+                            <View style={styles.errorBox}>
+                                <Ionicons name="alert-circle" size={18} color="#DC2626" />
+                                <ThemedText style={styles.errorText}>{error}</ThemedText>
+                            </View>
+                        )}
+
                         {/* Register Button */}
                         <Pressable
-                            style={styles.registerButton}
+                            style={[styles.registerButton, submitting && { opacity: 0.7 }]}
                             onPress={handleRegister}
+                            disabled={submitting}
                         >
-                            <ThemedText style={styles.registerButtonText}>Daftar Sekarang</ThemedText>
-                            <Ionicons name="arrow-forward" size={20} color="#fff" />
+                            {submitting ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <>
+                                    <ThemedText style={styles.registerButtonText}>Daftar Sekarang</ThemedText>
+                                    <Ionicons name="arrow-forward" size={20} color="#fff" />
+                                </>
+                            )}
                         </Pressable>
                     </View>
 
@@ -158,13 +201,13 @@ export default function RegisterScreen() {
                         </View>
 
                         <View style={styles.socialRow}>
-                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('google')}>
+                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('Google')}>
                                 <Ionicons name="logo-google" size={24} color="#DB4437" />
                             </Pressable>
-                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('apple')}>
+                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('Apple')}>
                                 <Ionicons name="logo-apple" size={24} color="#000" />
                             </Pressable>
-                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('facebook')}>
+                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('Facebook')}>
                                 <Ionicons name="logo-facebook" size={24} color="#1877F2" />
                             </Pressable>
                         </View>
@@ -173,7 +216,7 @@ export default function RegisterScreen() {
                     {/* 4. Login Link */}
                     <View style={styles.footer}>
                         <ThemedText style={styles.footerText}>Sudah punya akun? </ThemedText>
-                        <Pressable onPress={() => router.replace('/login')}>
+                        <Pressable onPress={goToLogin}>
                             <ThemedText style={styles.loginLink}>Masuk di sini</ThemedText>
                         </Pressable>
                     </View>
@@ -269,6 +312,19 @@ const styles = StyleSheet.create({
     },
     eyeIcon: {
         padding: 8,
+    },
+    errorBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: '#FEF2F2',
+        borderRadius: 12,
+        padding: 12,
+    },
+    errorText: {
+        flex: 1,
+        fontSize: 13,
+        color: '#B91C1C',
     },
     registerButton: {
         backgroundColor: '#059669', // Emerald Primary

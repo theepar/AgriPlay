@@ -1,5 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
-import { PLANTS_DATA } from '@/constants/plants';
+import { getPlantById, PLANTS_DATA } from '@/constants/plants';
+import { getPlantProgress, useGarden } from '@/lib/garden-store';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,10 +19,9 @@ import {
 export default function MissionDetailScreen() {
     const { id } = useLocalSearchParams();
 
-    const plantData = PLANTS_DATA.find(p => p.id === id);
-    const plant = plantData || PLANTS_DATA[0];
-
-    if (!plant) return null;
+    const { taskStatus } = useGarden();
+    const plant = getPlantById(id) ?? PLANTS_DATA[0];
+    const { percent } = getPlantProgress(plant, taskStatus);
 
     return (
         <View style={styles.container}>
@@ -70,7 +70,7 @@ export default function MissionDetailScreen() {
                             <View>
                                 <ThemedText style={styles.progressLabel}>Total Progres</ThemedText>
                                 <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
-                                    <ThemedText type="title" style={styles.progressValue}>{plant.progress}%</ThemedText>
+                                    <ThemedText type="title" style={styles.progressValue}>{percent}%</ThemedText>
                                     <ThemedText style={styles.progressSub}>Selesai</ThemedText>
                                 </View>
                             </View>
@@ -80,7 +80,7 @@ export default function MissionDetailScreen() {
                             </View>
                         </View>
                         <View style={styles.progressBarBg}>
-                            <View style={[styles.progressBarFill, { width: `${plant.progress}%` }]} />
+                            <View style={[styles.progressBarFill, { width: `${percent}%` }]} />
                         </View>
                     </View>
 
@@ -92,7 +92,7 @@ export default function MissionDetailScreen() {
                     <View style={styles.timelineList}>
                         {plant.tasks.map((task, index) => {
                             const isLast = index === plant.tasks.length - 1;
-                            const status = task.status as 'completed' | 'active' | 'locked';
+                            const status = taskStatus[task.id] ?? task.status;
 
                             return (
                                 <View key={task.id} style={styles.timelineItem}>
@@ -182,7 +182,6 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         backgroundColor: 'rgba(0,0,0,0.3)',
         alignItems: 'center', justifyContent: 'center',
-        backdropFilter: 'blur(10px)',
     },
 
     // SHEET CONTAINER (White curve)

@@ -1,5 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
 import { PLANTS_DATA } from '@/constants/plants';
+import { getPlantProgress, useGarden } from '@/lib/garden-store';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,16 +23,6 @@ const PADDING_HORIZONTAL = 24;
 const GAP = 16;
 const COLUMN_WIDTH = (width - (PADDING_HORIZONTAL * 2) - GAP) / 2;
 
-const activeMissions = PLANTS_DATA.map((plant, index) => ({
-    id: plant.id,
-    name: plant.name,
-    difficulty: plant.difficulty,
-    progress: plant.progress,
-    xpReward: plant.totalXp,
-    daysLeft: Math.floor(Math.random() * 7) + 1,
-    image: plant.image
-}));
-
 // Modern Badge Colors (Soft BG + Strong Text)
 const getDifficultyStyle = (diff: string) => {
     switch (diff) {
@@ -42,6 +33,22 @@ const getDifficultyStyle = (diff: string) => {
 };
 
 export default function MissionsListScreen() {
+    const { taskStatus } = useGarden();
+    const missions = PLANTS_DATA.map(plant => {
+        const { completed, total, percent, activeTask } = getPlantProgress(plant, taskStatus);
+        return {
+            id: plant.id,
+            name: plant.name,
+            difficulty: plant.difficulty,
+            progress: percent,
+            xpReward: plant.totalXp,
+            tasksLeft: total - completed,
+            isActive: !!activeTask,
+            image: plant.image,
+        };
+    });
+    const activeCount = missions.filter(m => m.isActive).length;
+
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
@@ -71,7 +78,7 @@ export default function MissionsListScreen() {
                         <View>
                             <ThemedText style={styles.summaryLabel}>Misi Berjalan</ThemedText>
                             <View style={styles.valueRow}>
-                                <ThemedText style={styles.summaryValue}>{activeMissions.length}</ThemedText>
+                                <ThemedText style={styles.summaryValue}>{activeCount}</ThemedText>
                                 <ThemedText style={styles.summaryUnit}>Tanaman</ThemedText>
                             </View>
                             <View style={styles.summaryBadge}>
@@ -94,7 +101,7 @@ export default function MissionsListScreen() {
 
                 {/* --- MISSION GRID --- */}
                 <View style={styles.grid}>
-                    {activeMissions.map((mission) => {
+                    {missions.map((mission) => {
                         const badgeStyle = getDifficultyStyle(mission.difficulty);
 
                         return (
@@ -133,8 +140,10 @@ export default function MissionsListScreen() {
                                         </View>
                                         <View style={styles.metaDivider} />
                                         <View style={styles.metaItem}>
-                                            <Ionicons name="time-outline" size={12} color="#6B7280" />
-                                            <ThemedText style={styles.metaText}>{mission.daysLeft} hari</ThemedText>
+                                            <Ionicons name="list-outline" size={12} color="#6B7280" />
+                                            <ThemedText style={styles.metaText}>
+                                                {mission.tasksLeft > 0 ? `${mission.tasksLeft} tugas` : 'Selesai'}
+                                            </ThemedText>
                                         </View>
                                     </View>
 

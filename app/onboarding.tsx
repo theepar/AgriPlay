@@ -1,7 +1,7 @@
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSession } from '@/lib/session';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
@@ -17,7 +17,7 @@ import {
     ViewToken
 } from 'react-native';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const onboardingData = [
     {
@@ -51,6 +51,7 @@ export default function OnboardingScreen() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const scrollX = useRef(new Animated.Value(0)).current;
     const slidesRef = useRef<FlatList>(null);
+    const { completeOnboarding } = useSession();
 
     const viewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
         if (viewableItems && viewableItems.length > 0 && viewableItems[0].index !== null) {
@@ -62,11 +63,11 @@ export default function OnboardingScreen() {
 
     const handleFinish = async () => {
         try {
-            await AsyncStorage.setItem('hasSeenOnboarding', 'true');
-            router.replace('/login');
+            await completeOnboarding();
         } catch (err) {
-            console.log('Error @setItem: ', err);
+            console.warn('Gagal menyimpan status onboarding:', err);
         }
+        router.replace('/login');
     };
 
     const scrollTo = async () => {
