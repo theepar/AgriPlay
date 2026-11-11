@@ -1,8 +1,12 @@
 import { ThemedText } from '@/components/themed-text';
+import { EMAIL_PATTERN, MIN_PASSWORD_LENGTH, resetTo, useSession } from '@/lib/session';
+import { showAlert } from '@/lib/alert';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
+    ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -16,25 +20,52 @@ import {
 
 
 export default function RegisterScreen() {
+    const insets = useSafeAreaInsets();
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [submitting, setSubmitting] = useState(false);
+    const { user, signIn } = useSession();
 
-    const handleRegister = () => {
-        if (password !== confirmPassword) {
-            alert('Password tidak cocok!');
-            return;
+    // Pindah ke beranda setelah sesi tersimpan (state sudah ter-update).
+    useEffect(() => {
+        if (user) resetTo('/');
+    }, [user]);
+
+    const validate = (): string | null => {
+        if (username.trim().length < 3) return 'Username minimal 3 karakter.';
+        if (!EMAIL_PATTERN.test(email.trim())) return 'Masukkan alamat email yang valid.';
+        if (password.length < MIN_PASSWORD_LENGTH) return `Password minimal ${MIN_PASSWORD_LENGTH} karakter.`;
+        if (password !== confirmPassword) return 'Konfirmasi password tidak cocok.';
+        return null;
+    };
+
+    const handleRegister = async () => {
+        const validationError = validate();
+        setError(validationError);
+        if (validationError) return;
+
+        setSubmitting(true);
+        try {
+            // Belum ada backend: akun disimpan lokal dan langsung login.
+            await signIn(email.trim().toLowerCase(), username.trim());
+        } catch {
+            setError('Gagal mendaftar. Coba lagi.');
+            setSubmitting(false);
         }
-        console.log('Register:', { username, email, password });
-        router.replace('/login');
     };
 
     const handleSocialLogin = (provider: string) => {
-        console.log('Social login with:', provider);
-        router.replace('/');
+        showAlert('Segera Hadir', `Daftar dengan ${provider} belum tersedia. Silakan daftar dengan email.`);
+    };
+
+    const goToLogin = () => {
+        if (router.canGoBack()) router.back();
+        else router.replace('/login');
     };
 
     return (
@@ -48,7 +79,7 @@ export default function RegisterScreen() {
                 style={{ flex: 1 }}
             >
                 <ScrollView
-                    contentContainerStyle={styles.scrollContent}
+                    contentContainerStyle={[styles.scrollContent, { paddingTop: Math.max(60, insets.top + 24) }]}
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                 >
@@ -56,7 +87,7 @@ export default function RegisterScreen() {
                     <View style={styles.headerSection}>
                         <View style={styles.logoContainer}>
                             <View style={styles.logoPlaceholder}>
-                                <Ionicons name="person-add" size={32} color="#059669" />
+                                <Ionicons name="person-add" size={32} color="#047857" />
                             </View>
                         </View>
                         <ThemedText type="title" style={styles.title}>Buat Akun Baru</ThemedText>
@@ -73,6 +104,7 @@ export default function RegisterScreen() {
                                 <Ionicons name="person-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
                                 <TextInput
                                     style={styles.input}
+                                    accessibilityLabel="Username"
                                     placeholder="Pilih username"
                                     placeholderTextColor="#D1D5DB"
                                     value={username}
@@ -89,6 +121,7 @@ export default function RegisterScreen() {
                                 <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
                                 <TextInput
                                     style={styles.input}
+                                    accessibilityLabel="Email"
                                     placeholder="nama@email.com"
                                     placeholderTextColor="#D1D5DB"
                                     value={email}
@@ -106,6 +139,7 @@ export default function RegisterScreen() {
                                 <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
                                 <TextInput
                                     style={styles.input}
+                                    accessibilityLabel="Password"
                                     placeholder="Minimal 8 karakter"
                                     placeholderTextColor="#D1D5DB"
                                     value={password}
@@ -113,7 +147,7 @@ export default function RegisterScreen() {
                                     secureTextEntry={!showPassword}
                                     autoCapitalize="none"
                                 />
-                                <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                                <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon} hitSlop={8} accessibilityRole="button" accessibilityLabel={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}>
                                     <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={20} color="#9CA3AF" />
                                 </Pressable>
                             </View>
@@ -126,6 +160,7 @@ export default function RegisterScreen() {
                                 <Ionicons name="shield-checkmark-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
                                 <TextInput
                                     style={styles.input}
+                                    accessibilityLabel="Konfirmasi password"
                                     placeholder="Ulangi password"
                                     placeholderTextColor="#D1D5DB"
                                     value={confirmPassword}
@@ -133,19 +168,33 @@ export default function RegisterScreen() {
                                     secureTextEntry={!showConfirmPassword}
                                     autoCapitalize="none"
                                 />
-                                <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
+                                <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon} hitSlop={8} accessibilityRole="button" accessibilityLabel={showConfirmPassword ? 'Sembunyikan konfirmasi password' : 'Tampilkan konfirmasi password'}>
                                     <Ionicons name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'} size={20} color="#9CA3AF" />
                                 </Pressable>
                             </View>
                         </View>
 
+                        {error && (
+                            <View style={styles.errorBox} accessibilityRole="alert" accessibilityLiveRegion="polite">
+                                <Ionicons name="alert-circle" size={18} color="#DC2626" />
+                                <ThemedText style={styles.errorText}>{error}</ThemedText>
+                            </View>
+                        )}
+
                         {/* Register Button */}
-                        <Pressable
-                            style={styles.registerButton}
+                        <Pressable accessibilityLabel="Daftar Sekarang" accessibilityRole="button" accessibilityState={{ disabled: submitting }}
+                            style={[styles.registerButton, submitting && { opacity: 0.7 }]}
                             onPress={handleRegister}
+                            disabled={submitting}
                         >
-                            <ThemedText style={styles.registerButtonText}>Daftar Sekarang</ThemedText>
-                            <Ionicons name="arrow-forward" size={20} color="#fff" />
+                            {submitting ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <>
+                                    <ThemedText style={styles.registerButtonText}>Daftar Sekarang</ThemedText>
+                                    <Ionicons name="arrow-forward" size={20} color="#fff" />
+                                </>
+                            )}
                         </Pressable>
                     </View>
 
@@ -158,13 +207,13 @@ export default function RegisterScreen() {
                         </View>
 
                         <View style={styles.socialRow}>
-                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('google')}>
+                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('Google')} accessibilityRole="button" accessibilityLabel="Daftar dengan Google">
                                 <Ionicons name="logo-google" size={24} color="#DB4437" />
                             </Pressable>
-                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('apple')}>
+                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('Apple')} accessibilityRole="button" accessibilityLabel="Daftar dengan Apple">
                                 <Ionicons name="logo-apple" size={24} color="#000" />
                             </Pressable>
-                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('facebook')}>
+                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('Facebook')} accessibilityRole="button" accessibilityLabel="Daftar dengan Facebook">
                                 <Ionicons name="logo-facebook" size={24} color="#1877F2" />
                             </Pressable>
                         </View>
@@ -173,7 +222,7 @@ export default function RegisterScreen() {
                     {/* 4. Login Link */}
                     <View style={styles.footer}>
                         <ThemedText style={styles.footerText}>Sudah punya akun? </ThemedText>
-                        <Pressable onPress={() => router.replace('/login')}>
+                        <Pressable accessibilityRole="button" hitSlop={12} onPress={goToLogin}>
                             <ThemedText style={styles.loginLink}>Masuk di sini</ThemedText>
                         </Pressable>
                     </View>
@@ -188,6 +237,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#FFFFFF',
+        overflow: 'hidden',
     },
     decorativeCircle: {
         position: 'absolute',
@@ -270,8 +320,21 @@ const styles = StyleSheet.create({
     eyeIcon: {
         padding: 8,
     },
+    errorBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: '#FEF2F2',
+        borderRadius: 12,
+        padding: 12,
+    },
+    errorText: {
+        flex: 1,
+        fontSize: 13,
+        color: '#B91C1C',
+    },
     registerButton: {
-        backgroundColor: '#059669', // Emerald Primary
+        backgroundColor: '#047857', // Emerald Primary
         height: 56,
         borderRadius: 16,
         flexDirection: 'row',
@@ -279,7 +342,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginTop: 16,
         gap: 8,
-        shadowColor: '#059669',
+        shadowColor: '#047857',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 10,
@@ -308,7 +371,7 @@ const styles = StyleSheet.create({
     dividerText: {
         marginHorizontal: 16,
         fontSize: 13,
-        color: '#9CA3AF',
+        color: '#6B7280',
     },
     socialRow: {
         flexDirection: 'row',
@@ -339,7 +402,7 @@ const styles = StyleSheet.create({
     },
     loginLink: {
         fontSize: 14,
-        color: '#059669',
+        color: '#047857',
         fontWeight: 'bold',
     },
 });

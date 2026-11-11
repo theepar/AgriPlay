@@ -1,4 +1,28 @@
-export const PLANTS_DATA = [
+export type TaskStatus = 'completed' | 'active' | 'locked';
+
+export interface PlantTask {
+    id: string;
+    title: string;
+    xp: number;
+    /** Status awal (seed). Status aktual disimpan di GardenProvider. */
+    status: TaskStatus;
+    desc: string;
+}
+
+export interface Plant {
+    id: string;
+    name: string;
+    latin: string;
+    description: string;
+    image: string;
+    difficulty: string;
+    growthTime: string;
+    totalXp: number;
+    color: string;
+    tasks: PlantTask[];
+}
+
+export const PLANTS_DATA: Plant[] = [
     {
         id: '1',
         name: 'Kentang Granola',
@@ -8,7 +32,6 @@ export const PLANTS_DATA = [
         difficulty: 'Sedang',
         growthTime: '90 Hari',
         totalXp: 1350,
-        progress: 45,
         color: '#059669',
         tasks: [
             { id: '1-1', title: 'Persiapan Lahan', xp: 100, status: 'completed', desc: 'Gemburkan tanah dan campur pupuk kandang.' },
@@ -28,7 +51,6 @@ export const PLANTS_DATA = [
         difficulty: 'Mudah',
         growthTime: '60-70 Hari',
         totalXp: 1000,
-        progress: 10,
         color: '#EA580C',
         tasks: [
             { id: '2-1', title: 'Semai Benih', xp: 100, status: 'active', desc: 'Semai benih di tray semai hingga berkecambah.' },
@@ -47,7 +69,6 @@ export const PLANTS_DATA = [
         difficulty: 'Mudah',
         growthTime: '80-90 Hari',
         totalXp: 1100,
-        progress: 25,
         color: '#DC2626',
         tasks: [
             { id: '3-1', title: 'Jemur Benih', xp: 50, status: 'completed', desc: 'Jemur biji cabai kering sebelum disemai.' },
@@ -66,7 +87,6 @@ export const PLANTS_DATA = [
         difficulty: 'Sangat Mudah',
         growthTime: '30-40 Hari',
         totalXp: 800,
-        progress: 10,
         color: '#65A30D',
         tasks: [
             { id: '4-1', title: 'Tabur Benih', xp: 100, status: 'active', desc: 'Tabur benih secara merata di bedengan.' },
@@ -85,7 +105,6 @@ export const PLANTS_DATA = [
         difficulty: 'Sangat Mudah',
         growthTime: '21-25 Hari',
         totalXp: 900,
-        progress: 10,
         color: '#10B981',
         tasks: [
             { id: '5-1', title: 'Siapkan Benih', xp: 100, status: 'active', desc: 'Rendam benih kangkung dalam air hangat selama 1 jam.' },
@@ -96,3 +115,15 @@ export const PLANTS_DATA = [
         ]
     }
 ];
+
+export function getPlantById(id: string | string[] | undefined): Plant | undefined {
+    return PLANTS_DATA.find(p => p.id === id);
+}
+
+export function findTask(taskId: string | string[] | undefined): { plant: Plant; task: PlantTask } | undefined {
+    for (const plant of PLANTS_DATA) {
+        const task = plant.tasks.find(t => t.id === taskId);
+        if (task) return { plant, task };
+    }
+    return undefined;
+}

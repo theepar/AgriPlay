@@ -1,12 +1,14 @@
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
+import { fetchCurrentWeather, type CurrentWeather } from '@/lib/weather';
+import { goBack } from '@/lib/navigation';
+import { showAlert } from '@/lib/alert';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
     ActivityIndicator,
-    Dimensions,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -18,35 +20,98 @@ import {
     View,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // --- TYPES ---
 type ExperienceLevel = 'pemula' | 'menengah' | 'mahir' | null;
 type SunCondition = 'full' | 'partial' | 'shade' | null;
+type Coordinates = { latitude: number; longitude: number };
 
-const { width } = Dimensions.get('window');
+const DEFAULT_COORDS: Coordinates = { latitude: -7.0051, longitude: 107.6419 };
+
+// HTML peta dibuat sekali. Posisi marker diubah lewat injectJavaScript agar
+// WebView tidak reload setiap kali koordinat berubah.
+function buildMapHtml({ latitude, longitude }: Coordinates): string {
+    return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" /><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" /><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script><style>body, html, #map { width: 100%; height: 100%; margin: 0; }</style></head><body><div id="map"></div><script>
+var map = L.map('map', {zoomControl: false}).setView([${latitude}, ${longitude}], 15);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '&copy; OpenStreetMap'}).addTo(map);
+var marker = L.marker([${latitude}, ${longitude}], {draggable: true}).addTo(map);
+function notify(pos) { window.ReactNativeWebView.postMessage(JSON.stringify({latitude: pos.lat, longitude: pos.lng})); }
+marker.on('dragend', function() { notify(marker.getLatLng()); });
+map.on('click', function(e) { marker.setLatLng(e.latlng); notify(e.latlng); });
+window.setMarker = function(lat, lng) { marker.setLatLng([lat, lng]); map.setView([lat, lng], 15); };
+</script></body></html>`;
+}
+
+function formatAddress(address: Location.LocationGeocodedAddress): string {
+    return [address.street, address.city ?? address.subregion, address.region].filter(Boolean).join(', ');
+}
+
+// Pesan dari WebView diperlakukan sebagai input tak tepercaya.
+function parseMapMessage(data: string): Coordinates | null {
+    try {
+        const { latitude, longitude } = JSON.parse(data);
+        const valid =
+            typeof latitude === 'number' && typeof longitude === 'number' &&
+            Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180;
+        return valid ? { latitude, longitude } : null;
+    } catch {
+        return null;
+    }
+}
+
+function formatCoords({ latitude, longitude }: Coordinates): string {
+    return `Titik peta (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
+}
 
 export default function PlantRecommendationScreen() {
+    const insets = useSafeAreaInsets();
     // --- STATE ---
     const [step, setStep] = useState(1);
     const [experience, setExperience] = useState<ExperienceLevel>(null);
     const [location, setLocation] = useState('');
     const [sunCondition, setSunCondition] = useState<SunCondition>(null);
     const [loadingLocation, setLoadingLocation] = useState(false);
-    const [weather, setWeather] = useState<{ temp: string; desc: string } | null>(null);
-    const [coordinates, setCoordinates] = useState({
-        latitude: -7.0051,
-        longitude: 107.6419
-    });
+    const [searching, setSearching] = useState(false);
+    const [weather, setWeather] = useState<CurrentWeather | null>(null);
+    const [coordinates, setCoordinates] = useState<Coordinates>(DEFAULT_COORDS);
+    // Tombol lanjut aktif hanya jika titik lahan benar-benar dipilih (bukan default).
+    const [hasPickedLocation, setHasPickedLocation] = useState(false);
+    const [mapHtml] = useState(() => buildMapHtml(DEFAULT_COORDS));
+    const webViewRef = useRef<WebView>(null);
+    const latestRequest = useRef(0);
 
     // --- LOGIC ---
-    const getWeatherInfo = (code: number) => {
-        if (code === 0) return 'Cerah';
-        if (code >= 1 && code <= 3) return 'Berawan';
-        if (code >= 45 && code <= 48) return 'Berkabut';
-        if (code >= 51 && code <= 67) return 'Hujan Ringan';
-        if (code >= 80 && code <= 82) return 'Hujan Deras';
-        if (code >= 95 && code <= 99) return 'Badai Petir';
-        return 'Cerah';
+    const moveMarker = ({ latitude, longitude }: Coordinates) => {
+        webViewRef.current?.injectJavaScript(`window.setMarker(${latitude}, ${longitude}); true;`);
+    };
+
+    const applyCoordinates = async (coords: Coordinates, options: { label?: string; moveMarker?: boolean } = {}) => {
+        // Respons untuk titik lama (pin digeser cepat) tidak boleh menimpa titik terbaru.
+        const request = ++latestRequest.current;
+        const isLatest = () => request === latestRequest.current;
+
+        setCoordinates(coords);
+        setHasPickedLocation(true);
+        setWeather(null);
+        if (options.moveMarker) moveMarker(coords);
+
+        fetchCurrentWeather(coords.latitude, coords.longitude)
+            .then(result => isLatest() && setWeather(result))
+            .catch(() => {});
+
+        if (options.label) {
+            setLocation(options.label);
+            return;
+        }
+        let label = formatCoords(coords);
+        try {
+            // Android butuh izin lokasi untuk geocoding; jangan memunculkan dialog di sini.
+            const { granted } = await Location.getForegroundPermissionsAsync();
+            const [address] = granted ? await Location.reverseGeocodeAsync(coords) : [];
+            if (address) label = formatAddress(address) || label;
+        } catch {}
+        if (isLatest()) setLocation(label);
     };
 
     const handleGetLocation = async () => {
@@ -54,8 +119,7 @@ export default function PlantRecommendationScreen() {
         try {
             const { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') {
-                alert('Izin lokasi ditolak');
-                setLoadingLocation(false);
+                showAlert('Izin lokasi ditolak', 'Pilih titik lahan langsung di peta atau cari nama lokasi.');
                 return;
             }
 
@@ -63,37 +127,38 @@ export default function PlantRecommendationScreen() {
                 accuracy: Location.Accuracy.Balanced, // Faster, ~100m accuracy
             });
             const { latitude, longitude } = currentLocation.coords;
-
-            setCoordinates({ latitude, longitude });
-
-            // Get Address
-            const address = await Location.reverseGeocodeAsync({ latitude, longitude });
-            if (address[0]) {
-                const place = `${address[0].street || ''} ${address[0].city || ''}, ${address[0].region || ''}`;
-                setLocation(place.trim());
-            }
-
-            // Get Weather
-            const response = await fetch(
-                `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`
-            );
-            const data = await response.json();
-            const current = data.current_weather;
-
-            setWeather({
-                temp: `${Math.round(current.temperature)}°C`,
-                desc: getWeatherInfo(current.weathercode)
-            });
-
-        } catch (error) {
-            alert('Gagal mendapatkan data lokasi/cuaca');
+            await applyCoordinates({ latitude, longitude }, { moveMarker: true });
+        } catch {
+            showAlert('Gagal', 'Gagal mendapatkan data lokasi. Coba pilih titik di peta.');
+        } finally {
+            setLoadingLocation(false);
         }
-        setLoadingLocation(false);
     };
+
+    const handleSearch = async () => {
+        const query = location.trim();
+        if (!query) return;
+        setSearching(true);
+        try {
+            await Location.requestForegroundPermissionsAsync();
+            const [result] = await Location.geocodeAsync(query);
+            if (!result) {
+                showAlert('Lokasi tidak ditemukan', 'Coba nama kota/kecamatan yang lebih spesifik, atau pilih titik di peta.');
+                return;
+            }
+            await applyCoordinates({ latitude: result.latitude, longitude: result.longitude }, { label: query, moveMarker: true });
+        } catch {
+            showAlert('Pencarian gagal', 'Tidak dapat mencari lokasi. Pilih titik langsung di peta atau gunakan GPS.');
+        } finally {
+            setSearching(false);
+        }
+    };
+
+    const isLocationValid = hasPickedLocation && location.trim().length > 0;
 
     const handleNext = () => {
         if (step === 1 && !experience) return;
-        if (step === 2 && !location) return;
+        if (step === 2 && !isLocationValid) return;
         if (step === 3 && !sunCondition) return;
 
         if (step === 3) {
@@ -114,7 +179,7 @@ export default function PlantRecommendationScreen() {
 
     const isStepValid = () => {
         if (step === 1) return !!experience;
-        if (step === 2) return !!location;
+        if (step === 2) return isLocationValid;
         if (step === 3) return !!sunCondition;
         return false;
     };
@@ -137,8 +202,8 @@ export default function PlantRecommendationScreen() {
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
             {/* 1. Header Simple */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => step === 1 ? router.back() : setStep(step - 1)} style={styles.backBtn}>
+            <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+                <TouchableOpacity hitSlop={4} onPress={() => step === 1 ? goBack() : setStep(step - 1)} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Kembali">
                     <Ionicons name="arrow-back" size={24} color="#1F2937" />
                 </TouchableOpacity>
                 <ThemedText type="subtitle" style={styles.headerTitle}>Rekomendasi Tanaman</ThemedText>
@@ -152,7 +217,7 @@ export default function PlantRecommendationScreen() {
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={{ flex: 1 }}
             >
-                <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+                <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false}>
 
                     {/* STEP 1: Experience */}
                     {step === 1 && (
@@ -173,9 +238,11 @@ export default function PlantRecommendationScreen() {
                                             experience === item.id && styles.selectionCardActive
                                         ]}
                                         onPress={() => setExperience(item.id as ExperienceLevel)}
+                                        accessibilityRole="radio"
+                                        aria-checked={experience === item.id}
                                     >
                                         <View style={[styles.iconContainer, experience === item.id && styles.iconContainerActive]}>
-                                            <Ionicons name={item.icon as any} size={24} color={experience === item.id ? '#059669' : '#9CA3AF'} />
+                                            <Ionicons name={item.icon as any} size={24} color={experience === item.id ? '#047857' : '#9CA3AF'} />
                                         </View>
                                         <View style={{ flex: 1 }}>
                                             <ThemedText type="defaultSemiBold" style={[styles.cardTitle, experience === item.id && styles.textActive]}>{item.label}</ThemedText>
@@ -201,49 +268,73 @@ export default function PlantRecommendationScreen() {
                                     <Ionicons name="location-outline" size={20} color="#9CA3AF" style={{ marginRight: 10 }} />
                                     <TextInput
                                         style={styles.input}
-                                        placeholder="Cari lokasi..."
+                                        accessibilityLabel="Lokasi lahan"
+                                        placeholder="Cari kota / kecamatan..."
                                         placeholderTextColor="#9CA3AF"
                                         value={location}
                                         onChangeText={setLocation}
+                                        onSubmitEditing={handleSearch}
+                                        returnKeyType="search"
                                     />
+                                    <TouchableOpacity
+                                        onPress={handleSearch}
+                                        disabled={searching || !location.trim()}
+                                        style={styles.searchBtn}
+                                        hitSlop={8}
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Cari lokasi"
+                                    >
+                                        {searching ? (
+                                            <ActivityIndicator size="small" color="#047857" />
+                                        ) : (
+                                            <Ionicons name="search" size={20} color={location.trim() ? '#047857' : '#D1D5DB'} />
+                                        )}
+                                    </TouchableOpacity>
                                 </View>
+                                {!hasPickedLocation && (
+                                    <ThemedText style={styles.hintText}>
+                                        Cari lokasi, ketuk peta, atau gunakan GPS untuk menentukan titik lahanmu.
+                                    </ThemedText>
+                                )}
                             </View>
 
                             {/* Weather Info Display */}
                             {weather && (
                                 <View style={styles.weatherInfo}>
-                                    <Ionicons name="cloud-outline" size={20} color="#059669" />
+                                    <Ionicons name="cloud-outline" size={20} color="#047857" />
                                     <ThemedText style={styles.weatherText}>
-                                        Cuaca: {weather.desc}, {weather.temp}
+                                        Cuaca saat ini: {weather.description}, {weather.temp}°C
                                     </ThemedText>
                                 </View>
                             )}
 
                             <View style={styles.mapCard}>
                                 <WebView
+                                    ref={webViewRef}
                                     style={styles.mapWebView}
-                                    source={{
-                                        html: `
-                      <!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" /><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><style>body, html, #map { width: 100%; height: 100%; margin: 0; }</style></head><body><div id="map"></div><script>var map = L.map('map', {zoomControl: false}).setView([${coordinates.latitude}, ${coordinates.longitude}], 15);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19}).addTo(map);var marker = L.marker([${coordinates.latitude}, ${coordinates.longitude}], {draggable: true}).addTo(map);marker.on('dragend', function(e) {var pos = marker.getLatLng();window.ReactNativeWebView.postMessage(JSON.stringify({latitude: pos.lat, longitude: pos.lng}));});map.on('click', function(e) {marker.setLatLng(e.latlng);window.ReactNativeWebView.postMessage(JSON.stringify({latitude: e.latlng.lat, longitude: e.latlng.lng}));});</script></body></html>
-                    `
-                                    }}
+                                    source={{ html: mapHtml }}
+                                    // Peta tidak boleh berpindah halaman; tautan lain (mis. atribusi) dibuka di browser sistem.
+                                    originWhitelist={['about:blank']}
+                                    setSupportMultipleWindows={false}
+                                    // Peta dibuat ulang saat kembali ke langkah ini; pulihkan titik yang dipilih.
+                                    onLoadEnd={() => hasPickedLocation && moveMarker(coordinates)}
                                     onMessage={(event) => {
-                                        try {
-                                            const data = JSON.parse(event.nativeEvent.data);
-                                            setCoordinates({ latitude: data.latitude, longitude: data.longitude });
-                                        } catch { }
+                                        const coords = parseMapMessage(event.nativeEvent.data);
+                                        if (coords) applyCoordinates(coords);
                                     }}
                                 />
-                                <TouchableOpacity
+                                <TouchableOpacity hitSlop={4}
                                     style={styles.gpsButton}
                                     onPress={handleGetLocation}
                                     disabled={loadingLocation}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Gunakan lokasi GPS saat ini"
                                 >
                                     {loadingLocation ? (
-                                        <ActivityIndicator size="small" color="#059669" />
+                                        <ActivityIndicator size="small" color="#047857" />
                                     ) : (
                                         <>
-                                            <Ionicons name="locate" size={18} color="#059669" />
+                                            <Ionicons name="locate" size={18} color="#047857" />
                                             <ThemedText style={styles.gpsText}>Gunakan GPS</ThemedText>
                                         </>
                                     )}
@@ -271,9 +362,11 @@ export default function PlantRecommendationScreen() {
                                             sunCondition === item.id && styles.selectionCardActive
                                         ]}
                                         onPress={() => setSunCondition(item.id as SunCondition)}
+                                        accessibilityRole="radio"
+                                        aria-checked={sunCondition === item.id}
                                     >
                                         <View style={[styles.iconContainer, sunCondition === item.id && styles.iconContainerActive]}>
-                                            <Ionicons name={item.icon as any} size={24} color={sunCondition === item.id ? '#059669' : '#F59E0B'} />
+                                            <Ionicons name={item.icon as any} size={24} color={sunCondition === item.id ? '#047857' : '#F59E0B'} />
                                         </View>
                                         <View style={{ flex: 1 }}>
                                             <ThemedText type="defaultSemiBold" style={[styles.cardTitle, sunCondition === item.id && styles.textActive]}>{item.label}</ThemedText>
@@ -292,7 +385,7 @@ export default function PlantRecommendationScreen() {
             </KeyboardAvoidingView>
 
             {/* Footer */}
-            <View style={styles.footer}>
+            <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
                 <ThemedButton
                     title={step === 3 ? 'Lihat Hasil' : 'Selanjutnya'}
                     onPress={handleNext}
@@ -316,7 +409,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
-        paddingTop: Platform.OS === 'ios' ? 60 : 40,
         paddingBottom: 10,
         backgroundColor: '#fff',
     },
@@ -344,7 +436,7 @@ const styles = StyleSheet.create({
     },
     progressFill: {
         height: '100%',
-        backgroundColor: '#059669', // Primary Green
+        backgroundColor: '#047857', // Primary Green
         borderRadius: 2,
     },
     stepText: {
@@ -390,7 +482,7 @@ const styles = StyleSheet.create({
         gap: 16,
     },
     selectionCardActive: {
-        borderColor: '#059669',
+        borderColor: '#047857',
         backgroundColor: '#ECFDF5', // Very light green bg
     },
     iconContainer: {
@@ -411,7 +503,7 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     textActive: {
-        color: '#059669',
+        color: '#047857',
     },
     cardSubtitle: {
         fontSize: 13,
@@ -427,13 +519,13 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     radioOuterActive: {
-        borderColor: '#059669',
+        borderColor: '#047857',
     },
     radioInner: {
         width: 10,
         height: 10,
         borderRadius: 5,
-        backgroundColor: '#059669',
+        backgroundColor: '#047857',
     },
 
     // Inputs
@@ -456,6 +548,15 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: '#111827',
     },
+    searchBtn: {
+        padding: 6,
+        marginLeft: 6,
+    },
+    hintText: {
+        fontSize: 13,
+        color: '#6B7280',
+        lineHeight: 19,
+    },
 
     // Weather Info
     weatherInfo: {
@@ -469,7 +570,7 @@ const styles = StyleSheet.create({
     },
     weatherText: {
         fontSize: 14,
-        color: '#059669',
+        color: '#047857',
         fontWeight: '600',
     },
 
@@ -505,7 +606,7 @@ const styles = StyleSheet.create({
     gpsText: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#059669',
+        color: '#047857',
     },
 
     // Footer
@@ -518,29 +619,5 @@ const styles = StyleSheet.create({
         padding: 20,
         borderTopWidth: 1,
         borderTopColor: '#F3F4F6',
-    },
-    nextButton: {
-        backgroundColor: '#059669', // Primary Green
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 16,
-        borderRadius: 16,
-        gap: 8,
-        shadowColor: '#059669',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    nextButtonDisabled: {
-        backgroundColor: '#E5E7EB',
-        shadowOpacity: 0,
-        elevation: 0,
-    },
-    nextButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
     },
 });

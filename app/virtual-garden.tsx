@@ -1,12 +1,15 @@
 import { ThemedText } from '@/components/themed-text';
 import { PLANTS_DATA } from '@/constants/plants';
+import { getPlantProgress, useGarden } from '@/lib/garden-store';
+import { goBack } from '@/lib/navigation';
+import { showAlert } from '@/lib/alert';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     Dimensions,
-    Platform,
     Pressable,
     ScrollView,
     StatusBar,
@@ -22,18 +25,6 @@ const { width } = Dimensions.get('window');
 const PADDING_HORIZONTAL = 24;
 const GAP = 16;
 const COLUMN_WIDTH = (width - (PADDING_HORIZONTAL * 2) - GAP) / 2;
-
-// --- DATA: MY PLANTS ---
-const MY_PROFILE = {
-    name: 'Agra Master',
-    plants: PLANTS_DATA.map((plant, index) => ({
-        id: Number(plant.id),
-        name: plant.name,
-        status: ['Siap Panen', 'Berbunga', 'Butuh Air', 'Tumbuh', 'Bibit'][index] || 'Tumbuh',
-        color: plant.color,
-        image: plant.image
-    }))
-};
 
 // --- DATA: OTHER GARDENS (COMMUNITY) ---
 const OTHER_GARDENS = [
@@ -70,6 +61,7 @@ const OTHER_GARDENS = [
 ];
 
 export default function VirtualGardenScreen() {
+    const insets = useSafeAreaInsets();
     const [activeTab, setActiveTab] = useState<'my_garden' | 'explore'>('my_garden');
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -83,9 +75,9 @@ export default function VirtualGardenScreen() {
             <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
 
             {/* HEADER FIXED (Tidak ikut scroll) */}
-            <View style={styles.headerContainer}>
+            <View style={[styles.headerContainer, { paddingTop: insets.top + 12 }]}>
                 <View style={styles.navRow}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                    <TouchableOpacity hitSlop={4} onPress={() => goBack()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Kembali">
                         <Ionicons name="arrow-back" size={24} color="#111827" />
                     </TouchableOpacity>
                     <ThemedText type="subtitle" style={styles.headerTitle}>Virtual Garden</ThemedText>
@@ -93,16 +85,20 @@ export default function VirtualGardenScreen() {
                 </View>
 
                 {/* SEGMENTED CONTROL (TABS) */}
-                <View style={styles.tabContainer}>
+                <View style={styles.tabContainer} accessibilityRole="tablist">
                     <Pressable
                         style={[styles.tabButton, activeTab === 'my_garden' && styles.tabActive]}
                         onPress={() => { setActiveTab('my_garden'); setSearchQuery(''); }}
+                        accessibilityRole="tab"
+                        aria-selected={activeTab === 'my_garden'}
                     >
                         <ThemedText style={[styles.tabText, activeTab === 'my_garden' && styles.tabTextActive]}>Koleksi Saya</ThemedText>
                     </Pressable>
                     <Pressable
                         style={[styles.tabButton, activeTab === 'explore' && styles.tabActive]}
                         onPress={() => { setActiveTab('explore'); setSearchQuery(''); }}
+                        accessibilityRole="tab"
+                        aria-selected={activeTab === 'explore'}
                     >
                         <ThemedText style={[styles.tabText, activeTab === 'explore' && styles.tabTextActive]}>Jelajahi</ThemedText>
                     </Pressable>
@@ -113,13 +109,14 @@ export default function VirtualGardenScreen() {
                     <Ionicons name="search" size={20} color="#9CA3AF" />
                     <TextInput
                         style={styles.searchInput}
+                        accessibilityLabel="Pencarian"
                         placeholder={searchPlaceholder}
                         placeholderTextColor="#9CA3AF"
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                     />
                     {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                        <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={12} accessibilityRole="button" accessibilityLabel="Hapus pencarian">
                             <Ionicons name="close-circle" size={20} color="#9CA3AF" />
                         </TouchableOpacity>
                     )}
@@ -143,12 +140,22 @@ export default function VirtualGardenScreen() {
 
 // --- SUB-COMPONENT: MY GARDEN (Grid View) ---
 function MyGardenView({ searchQuery }: { searchQuery: string }) {
-    const filteredPlants = MY_PROFILE.plants.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const { taskStatus } = useGarden();
+    const filteredPlants = PLANTS_DATA
+        .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        .map(plant => {
+            const { activeTask } = getPlantProgress(plant, taskStatus);
+            return {
+                id: plant.id,
+                name: plant.name,
+                status: activeTask ? activeTask.title : 'Siap Panen',
+                color: plant.color,
+                image: plant.image,
+            };
+        });
 
-    const handlePlantPress = (plantId: number) => {
-        router.push({ pathname: '/plant-detail', params: { id: plantId.toString() } });
+    const handlePlantPress = (plantId: string) => {
+        router.push({ pathname: '/plant-detail', params: { id: plantId } });
     };
 
     return (
@@ -159,18 +166,18 @@ function MyGardenView({ searchQuery }: { searchQuery: string }) {
 
             <View style={styles.grid}>
                 {filteredPlants.map((plant) => (
-                    <Pressable key={plant.id} style={styles.plantCard} onPress={() => handlePlantPress(plant.id)}>
+                    <Pressable accessibilityRole="button" key={plant.id} style={styles.plantCard} onPress={() => handlePlantPress(plant.id)}>
                         <View style={styles.plantImageWrapper}>
-                            <Image source={{ uri: plant.image }} style={styles.plantImage} contentFit="cover" />
+                            <Image alt="" source={{ uri: plant.image }} style={styles.plantImage} contentFit="cover" />
                             <View style={[styles.statusBadge, { backgroundColor: plant.color }]}>
-                                <ThemedText style={styles.statusText}>{plant.status}</ThemedText>
+                                <ThemedText style={styles.statusText} numberOfLines={1}>{plant.status}</ThemedText>
                             </View>
                         </View>
                         <View style={styles.plantCardContent}>
                             <ThemedText type="defaultSemiBold" style={styles.plantName}>{plant.name}</ThemedText>
-                            <TouchableOpacity style={styles.plantActionBtn} onPress={() => handlePlantPress(plant.id)}>
+                            <View style={styles.plantActionBtn}>
                                 <ThemedText style={styles.plantActionText}>Detail</ThemedText>
-                            </TouchableOpacity>
+                            </View>
                         </View>
                     </Pressable>
                 ))}
@@ -195,10 +202,10 @@ function ExploreView({ searchQuery }: { searchQuery: string }) {
 
             <View style={styles.list}>
                 {filteredGardens.map((garden) => (
-                    <Pressable key={garden.id} style={styles.gardenCard}>
+                    <View key={garden.id} style={styles.gardenCard}>
                         {/* Cover Image */}
                         <View style={styles.gardenCoverWrapper}>
-                            <Image source={{ uri: garden.coverImage }} style={styles.gardenCover} contentFit="cover" />
+                            <Image accessibilityLabel={`Foto kebun ${garden.gardenName}`} source={{ uri: garden.coverImage }} style={styles.gardenCover} contentFit="cover" />
                             <View style={styles.gardenOverlay} />
 
                             {/* Stats Badge on Cover */}
@@ -211,21 +218,26 @@ function ExploreView({ searchQuery }: { searchQuery: string }) {
                         {/* Info Section */}
                         <View style={styles.gardenInfo}>
                             <View style={styles.gardenOwnerRow}>
-                                <Image source={{ uri: garden.ownerAvatar }} style={styles.ownerAvatar} />
+                                <Image accessibilityLabel={`Foto ${garden.ownerName}`} source={{ uri: garden.ownerAvatar }} style={styles.ownerAvatar} />
                                 <View style={{ flex: 1 }}>
-                                    <ThemedText type="defaultSemiBold" style={styles.gardenName}>{garden.gardenName}</ThemedText>
-                                    <ThemedText style={styles.ownerName}>{garden.ownerName} • Lvl {garden.level}</ThemedText>
+                                    <ThemedText type="defaultSemiBold" style={styles.gardenName} numberOfLines={1}>{garden.gardenName}</ThemedText>
+                                    <ThemedText style={styles.ownerName} numberOfLines={1}>{garden.ownerName} • Lvl {garden.level}</ThemedText>
                                 </View>
 
                                 {/* Visit Button */}
-                                <TouchableOpacity style={[styles.visitBtn, garden.isFollowing ? styles.visitBtnOutline : styles.visitBtnFilled]}>
+                                <TouchableOpacity hitSlop={8}
+                                    style={[styles.visitBtn, garden.isFollowing ? styles.visitBtnOutline : styles.visitBtnFilled]}
+                                    onPress={() => showAlert('Segera Hadir', 'Kunjungan ke kebun teman sedang dikembangkan.')}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`${garden.isFollowing ? 'Teman' : 'Kunjungi'} ${garden.gardenName}`}
+                                >
                                     <ThemedText style={[styles.visitBtnText, garden.isFollowing ? styles.textGreen : styles.textWhite]}>
                                         {garden.isFollowing ? 'Teman' : 'Kunjungi'}
                                     </ThemedText>
                                 </TouchableOpacity>
                             </View>
                         </View>
-                    </Pressable>
+                    </View>
                 ))}
             </View>
             {filteredGardens.length === 0 && <EmptyState text="Kebun tidak ditemukan." />}
@@ -249,7 +261,6 @@ const styles = StyleSheet.create({
     // --- HEADER ---
     headerContainer: {
         backgroundColor: '#F9FAFB',
-        paddingTop: Platform.OS === 'ios' ? 60 : 40,
         paddingHorizontal: PADDING_HORIZONTAL,
         paddingBottom: 16,
         zIndex: 10, // Sticky effect
@@ -273,6 +284,8 @@ const styles = StyleSheet.create({
     },
     tabButton: {
         flex: 1,
+        minHeight: 44,
+        justifyContent: 'center',
         paddingVertical: 10,
         alignItems: 'center',
         borderRadius: 10,
@@ -291,7 +304,7 @@ const styles = StyleSheet.create({
         color: '#6B7280',
     },
     tabTextActive: {
-        color: '#059669',
+        color: '#047857',
         fontWeight: '700',
     },
 
@@ -338,7 +351,7 @@ const styles = StyleSheet.create({
     plantImageWrapper: { height: 120, position: 'relative' },
     plantImage: { width: '100%', height: '100%' },
     statusBadge: {
-        position: 'absolute', top: 8, left: 8,
+        position: 'absolute', top: 8, left: 8, maxWidth: COLUMN_WIDTH - 16,
         paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6,
     },
     statusText: { color: '#FFF', fontSize: 10, fontWeight: '700' },
@@ -347,7 +360,7 @@ const styles = StyleSheet.create({
     plantActionBtn: {
         backgroundColor: '#ECFDF5', paddingVertical: 6, alignItems: 'center', borderRadius: 8,
     },
-    plantActionText: { fontSize: 12, fontWeight: '600', color: '#059669' },
+    plantActionText: { fontSize: 12, fontWeight: '600', color: '#047857' },
 
     // --- EXPLORE STYLES ---
     listContainer: { paddingHorizontal: PADDING_HORIZONTAL },
@@ -383,9 +396,9 @@ const styles = StyleSheet.create({
     visitBtn: {
         paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1,
     },
-    visitBtnFilled: { backgroundColor: '#059669', borderColor: '#059669' },
+    visitBtnFilled: { backgroundColor: '#047857', borderColor: '#047857' },
     visitBtnOutline: { backgroundColor: '#FFF', borderColor: '#D1D5DB' },
     visitBtnText: { fontSize: 12, fontWeight: '700' },
     textWhite: { color: '#FFF' },
-    textGreen: { color: '#059669' },
+    textGreen: { color: '#047857' },
 });

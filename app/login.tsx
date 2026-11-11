@@ -1,8 +1,12 @@
 import { ThemedText } from '@/components/themed-text';
+import { EMAIL_PATTERN, resetTo, useSession } from '@/lib/session';
+import { showAlert } from '@/lib/alert';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
+    ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -16,18 +20,41 @@ import {
 
 
 export default function LoginScreen() {
+    const insets = useSafeAreaInsets();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [submitting, setSubmitting] = useState(false);
+    const { user, signIn } = useSession();
 
-    const handleLogin = () => {
-        console.log('Login:', { email, password });
-        router.replace('/');
+    // Pindah ke beranda setelah sesi tersimpan (state sudah ter-update).
+    useEffect(() => {
+        if (user) resetTo('/');
+    }, [user]);
+
+    const handleLogin = async () => {
+        const trimmedEmail = email.trim().toLowerCase();
+        if (!EMAIL_PATTERN.test(trimmedEmail)) {
+            setError('Masukkan alamat email yang valid.');
+            return;
+        }
+        if (!password) {
+            setError('Password wajib diisi.');
+            return;
+        }
+        setError(null);
+        setSubmitting(true);
+        try {
+            await signIn(trimmedEmail);
+        } catch {
+            setError('Gagal masuk. Coba lagi.');
+            setSubmitting(false);
+        }
     };
 
     const handleSocialLogin = (provider: string) => {
-        console.log('Social login with:', provider);
-        router.replace('/');
+        showAlert('Segera Hadir', `Login dengan ${provider} belum tersedia. Silakan masuk dengan email.`);
     };
 
     return (
@@ -42,7 +69,7 @@ export default function LoginScreen() {
                 style={{ flex: 1 }}
             >
                 <ScrollView
-                    contentContainerStyle={styles.scrollContent}
+                    contentContainerStyle={[styles.scrollContent, { paddingTop: Math.max(60, insets.top + 24) }]}
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                 >
@@ -50,7 +77,7 @@ export default function LoginScreen() {
                     <View style={styles.headerSection}>
                         <View style={styles.logoContainer}>
                             <View style={styles.logoPlaceholder}>
-                                <Ionicons name="leaf" size={40} color="#059669" />
+                                <Ionicons name="leaf" size={40} color="#047857" />
                             </View>
                         </View>
                         <ThemedText type="title" style={styles.title}>Selamat Datang!</ThemedText>
@@ -66,12 +93,15 @@ export default function LoginScreen() {
                                 <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
                                 <TextInput
                                     style={styles.input}
+                                    accessibilityLabel="Email"
                                     placeholder="nama@email.com"
                                     placeholderTextColor="#D1D5DB"
                                     value={email}
                                     onChangeText={setEmail}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
+                                    autoComplete="email"
+                                    textContentType="emailAddress"
                                 />
                             </View>
                         </View>
@@ -83,29 +113,52 @@ export default function LoginScreen() {
                                 <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
                                 <TextInput
                                     style={styles.input}
+                                    accessibilityLabel="Password"
                                     placeholder="Masukkan password"
                                     placeholderTextColor="#D1D5DB"
                                     value={password}
                                     onChangeText={setPassword}
                                     secureTextEntry={!showPassword}
                                     autoCapitalize="none"
+                                    autoComplete="password"
+                                    textContentType="password"
+                                    onSubmitEditing={handleLogin}
                                 />
-                                <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                                <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon} hitSlop={8} accessibilityRole="button" accessibilityLabel={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}>
                                     <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={20} color="#9CA3AF" />
                                 </Pressable>
                             </View>
-                            <Pressable style={{ alignSelf: 'flex-end', marginTop: 8 }}>
+                            <Pressable
+                                style={{ alignSelf: 'flex-end', marginTop: 8 }}
+                                hitSlop={12}
+                                accessibilityRole="button"
+                                onPress={() => showAlert('Segera Hadir', 'Reset password belum tersedia karena akun masih tersimpan di perangkat ini.')}
+                            >
                                 <ThemedText style={styles.forgotPassword}>Lupa Password?</ThemedText>
                             </Pressable>
                         </View>
 
+                        {error && (
+                            <View style={styles.errorBox} accessibilityRole="alert" accessibilityLiveRegion="polite">
+                                <Ionicons name="alert-circle" size={18} color="#DC2626" />
+                                <ThemedText style={styles.errorText}>{error}</ThemedText>
+                            </View>
+                        )}
+
                         {/* Login Button */}
-                        <Pressable
-                            style={styles.loginButton}
+                        <Pressable accessibilityLabel="Masuk" accessibilityRole="button" accessibilityState={{ disabled: submitting }}
+                            style={[styles.loginButton, submitting && { opacity: 0.7 }]}
                             onPress={handleLogin}
+                            disabled={submitting}
                         >
-                            <ThemedText style={styles.loginButtonText}>Masuk</ThemedText>
-                            <Ionicons name="arrow-forward" size={20} color="#fff" />
+                            {submitting ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <>
+                                    <ThemedText style={styles.loginButtonText}>Masuk</ThemedText>
+                                    <Ionicons name="arrow-forward" size={20} color="#fff" />
+                                </>
+                            )}
                         </Pressable>
                     </View>
 
@@ -118,13 +171,13 @@ export default function LoginScreen() {
                         </View>
 
                         <View style={styles.socialRow}>
-                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('google')}>
+                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('Google')} accessibilityRole="button" accessibilityLabel="Masuk dengan Google">
                                 <Ionicons name="logo-google" size={24} color="#DB4437" />
                             </Pressable>
-                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('apple')}>
+                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('Apple')} accessibilityRole="button" accessibilityLabel="Masuk dengan Apple">
                                 <Ionicons name="logo-apple" size={24} color="#000" />
                             </Pressable>
-                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('facebook')}>
+                            <Pressable style={styles.socialBtn} onPress={() => handleSocialLogin('Facebook')} accessibilityRole="button" accessibilityLabel="Masuk dengan Facebook">
                                 <Ionicons name="logo-facebook" size={24} color="#1877F2" />
                             </Pressable>
                         </View>
@@ -133,7 +186,7 @@ export default function LoginScreen() {
                     {/* 4. Register Link */}
                     <View style={styles.footer}>
                         <ThemedText style={styles.footerText}>Belum punya akun? </ThemedText>
-                        <Pressable onPress={() => router.push('/register')}>
+                        <Pressable accessibilityRole="button" hitSlop={12} onPress={() => router.push('/register')}>
                             <ThemedText style={styles.registerLink}>Daftar Sekarang</ThemedText>
                         </Pressable>
                     </View>
@@ -148,6 +201,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#FFFFFF',
+        overflow: 'hidden',
     },
     decorativeCircle: {
         position: 'absolute',
@@ -234,11 +288,25 @@ const styles = StyleSheet.create({
     },
     forgotPassword: {
         fontSize: 13,
-        color: '#059669',
+        color: '#047857',
         fontWeight: '600',
     },
+    errorBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: '#FEF2F2',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 4,
+    },
+    errorText: {
+        flex: 1,
+        fontSize: 13,
+        color: '#B91C1C',
+    },
     loginButton: {
-        backgroundColor: '#059669', // Emerald Primary
+        backgroundColor: '#047857', // Emerald Primary
         height: 56,
         borderRadius: 16,
         flexDirection: 'row',
@@ -246,7 +314,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginTop: 10,
         gap: 8,
-        shadowColor: '#059669',
+        shadowColor: '#047857',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 10,
@@ -275,7 +343,7 @@ const styles = StyleSheet.create({
     dividerText: {
         marginHorizontal: 16,
         fontSize: 13,
-        color: '#9CA3AF',
+        color: '#6B7280',
     },
     socialRow: {
         flexDirection: 'row',
@@ -305,7 +373,7 @@ const styles = StyleSheet.create({
     },
     registerLink: {
         fontSize: 14,
-        color: '#059669',
+        color: '#047857',
         fontWeight: 'bold',
     },
 });
